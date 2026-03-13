@@ -204,8 +204,36 @@ async function handleRequest(req, res) {
   }
 }
 
+// === WebSocket Server ===
+let WebSocketServer;
+try { WebSocketServer = require('ws').WebSocketServer; } catch { WebSocketServer = null; }
+
+const wsClients = new Set();
+
+function broadcast(type, data) {
+  const msg = JSON.stringify({ type, data, timestamp: new Date().toISOString() });
+  for (const client of wsClients) {
+    if (client.readyState === 1) client.send(msg);
+  }
+}
+
 // === Start ===
 const server = http.createServer(handleRequest);
+
+if (WebSocketServer) {
+  const wss = new WebSocketServer({ server });
+  wss.on('connection', (ws) => {
+    wsClients.add(ws);
+    ws.send(JSON.stringify({ type: 'connected', data: { agents: listAgentDirs() } }));
+    ws.on('close', () => wsClients.delete(ws));
+    ws.on('message', (raw) => {
+      try {
+        const msg = JSON.parse(raw);
+        if (msg.type === 'ping') ws.send(JSON.stringify({ type: 'pong' }));
+      } catch {}
+    });
+  });
+}
 
 server.listen(config.ENGINE_PORT, config.ENGINE_HOST, () => {
   console.log(`
@@ -213,6 +241,7 @@ server.listen(config.ENGINE_PORT, config.ENGINE_HOST, () => {
 ║     S·P·Q·A · Engine API Server v0.1.0           ║
 ╠══════════════════════════════════════════════════╣
 ║  API:  http://${config.ENGINE_HOST}:${config.ENGINE_PORT}                       ║
+║  WS:   ${WebSocketServer ? 'enabled (same port)' : 'disabled (npm install ws)'}${' '.repeat(22)}║
 ║  Home: ${config.OPENCLAW_HOME.substring(0, 40).padEnd(40)} ║
 ║  Agents: ${listAgentDirs().join(', ').padEnd(38)} ║
 ╚══════════════════════════════════════════════════╝
