@@ -3,12 +3,13 @@ const fs = require('fs');
 const path = require('path');
 const config = require('./config');
 
-// === JSON5-lite parser (handle trailing commas + comments) ===
+// === JSON5-lite parser (handle trailing commas, comments, unquoted keys) ===
 function parseJSON5(text) {
   const cleaned = text
     .replace(/\/\/.*$/gm, '')
     .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/,\s*([\]}])/g, '$1');
+    .replace(/,\s*([\]}])/g, '$1')
+    .replace(/([{,]\s*)([a-zA-Z_$][\w$-]*)\s*:/g, '$1"$2":');
   return JSON.parse(cleaned);
 }
 
