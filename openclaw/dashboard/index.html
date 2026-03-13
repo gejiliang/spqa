@@ -29,16 +29,9 @@
         }
     </script>
 
-    <!-- React and ReactDOM from CDN -->
-    <script async src="https://cdn.jsdelivr.net/npm/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
-    <script type="importmap">
-    {
-      "imports": {
-        "react": "https://cdn.jsdelivr.net/npm/react@18.2.0/+esm",
-        "react-dom": "https://cdn.jsdelivr.net/npm/react-dom@18.2.0/+esm"
-      }
-    }
-    </script>
+    <!-- React and ReactDOM from CDN (UMD builds for window global) -->
+    <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
 
     <!-- Babel Standalone for JSX transformation -->
     <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.0/babel.min.js"></script>
@@ -244,27 +237,72 @@
         // ===== API CLIENT =====
         const API_BASE = 'http://localhost:3000/api';
 
+        async function apiFetch(endpoint) {
+          try {
+            const res = await fetch(`${API_BASE}${endpoint}`);
+            if (!res.ok) throw new Error(`${res.status}`);
+            return await res.json();
+          } catch (e) {
+            console.error(`API ${endpoint}:`, e);
+            return null;
+          }
+        }
+
         // ===== PAGE COMPONENTS =====
 
         // Curia (指挥中心)
         function Curia() {
-          const [agents] = useState([
-            { id: 'consul', name: 'Consul', emoji: '👑', status: 'online', lastActivity: new Date(Date.now() - 5 * 60000), description: '最高决策者' },
-            { id: 'annalist', name: 'Annalist', emoji: '📚', status: 'online', lastActivity: new Date(Date.now() - 15 * 60000), description: '历史记录员' },
-            { id: 'curator', name: 'Curator', emoji: '🎯', status: 'offline', lastActivity: new Date(Date.now() - 2 * 3600000), description: '任务策展人' },
-          ]);
-          const [tasks] = useState([
-            { id: 'task-1', title: '处理用户反馈', level: 'L1', status: 'in_progress', assignedAgent: 'Consul', progress: 65 },
-            { id: 'task-2', title: '分析市场趋势', level: 'L2', status: 'pending', assignedAgent: 'Annalist', progress: 0 },
-            { id: 'task-3', title: '优化工作流', level: 'L0', status: 'completed', assignedAgent: 'Curator', progress: 100 },
-          ]);
-          const [deliberations] = useState([
-            { id: 'dlib-1', topic: '季度目标评审', phase: 'Consensus', senators: 3, status: '进行中' },
-            { id: 'dlib-2', topic: '资源分配方案', phase: 'Decretum', senators: 5, status: '已完成' },
-          ]);
-          const [costToday] = useState(1250);
-          const [costMonth] = useState(28500);
+          const [agents, setAgents] = useState([]);
+          const [tasks, setTasks] = useState([]);
+          const [deliberations, setDeliberations] = useState([]);
+          const [costToday, setCostToday] = useState(0);
+          const [costMonth, setCostMonth] = useState(0);
           const [selectedTask, setSelectedTask] = useState(null);
+          const [loading, setLoading] = useState(true);
+
+          useEffect(() => {
+            Promise.all([
+              apiFetch('/agents'),
+              apiFetch('/tasks'),
+              apiFetch('/senate/active'),
+              apiFetch('/mercenarii/stats'),
+            ]).then(([agentsRes, tasksRes, senateRes, statsRes]) => {
+              if (agentsRes?.agents) {
+                setAgents(agentsRes.agents.map(a => ({
+                  ...a,
+                  name: a.id.charAt(0).toUpperCase() + a.id.slice(1),
+                  emoji: { consul: '👑', annalist: '📚', curator: '🎯' }[a.id] || '🤖',
+                  description: (a.soul || '').split('\n')[0].replace(/^#\s*/, '').slice(0, 30),
+                  lastActivity: new Date(a.lastActivity),
+                })));
+              }
+              if (tasksRes?.tasks) {
+                const all = [...(tasksRes.tasks.active || []), ...(tasksRes.tasks.mercenary || [])];
+                setTasks(all.map(t => ({
+                  id: t.id,
+                  title: t.title || t.topic || t.id,
+                  level: t.level || 'L0',
+                  status: t.status || 'pending',
+                  assignedAgent: t.assignedAgent || t.assigned_to || '-',
+                  progress: t.progress || (t.status === 'completed' ? 100 : 0),
+                })));
+              }
+              if (senateRes?.active) {
+                setDeliberations(senateRes.active.map(d => ({
+                  id: d.id,
+                  topic: d.topic || d.title || d.id,
+                  phase: d.phase || 'Cogitatio',
+                  senators: d.senators?.length || 0,
+                  status: d.status === 'completed' ? '已完成' : '进行中',
+                })));
+              }
+              if (statsRes) {
+                setCostToday(statsRes.totalCost || 0);
+                setCostMonth(statsRes.totalCost || 0);
+              }
+              setLoading(false);
+            });
+          }, []);
 
           const onlineCount = agents.filter(a => a.status === 'online').length;
           const activeTasks = tasks.filter(t => t.status === 'in_progress').length;
@@ -390,15 +428,35 @@
         // Senatus (元老院)
         function Senatus() {
           const PHASES = ['Cogitatio', 'Contentio', 'Consensus', 'Decretum'];
-          const [deliberations, setDeliberations] = useState([
-            { id: 'dlib-1', topic: '季度目标评审', phase: 'Consensus', phaseIndex: 2, senators: ['Consul', 'Curator', 'Scribe'], startedAt: new Date(Date.now() - 3600000), consultum: '同意推进第四季度战略目标，聚焦市场扩张与产品创新。', status: 'in_progress' },
-            { id: 'dlib-2', topic: '资源分配方案', phase: 'Decretum', phaseIndex: 3, senators: ['Consul', 'Annalist'], startedAt: new Date(Date.now() - 86400000), consultum: '决议：批准2026年资源分配方案。', status: 'completed' },
-          ]);
-          const [selectedDlib, setSelectedDlib] = useState(deliberations[0]);
+          const [deliberations, setDeliberations] = useState([]);
+          const [selectedDlib, setSelectedDlib] = useState(null);
           const [newTopic, setNewTopic] = useState('');
           const [showNewForm, setShowNewForm] = useState(false);
+          const [availableSenators, setAvailableSenators] = useState([]);
 
-          const availableSenators = ['Consul', 'Annalist', 'Curator', 'Scribe', 'Tribune'];
+          useEffect(() => {
+            apiFetch('/senate/active').then(res => {
+              if (res?.active?.length) {
+                const mapped = res.active.map(d => ({
+                  id: d.id,
+                  topic: d.topic || d.title || d.id,
+                  phase: d.phase || 'Cogitatio',
+                  phaseIndex: PHASES.indexOf(d.phase || 'Cogitatio'),
+                  senators: d.senators || [],
+                  startedAt: new Date(d.started || d.startedAt || Date.now()),
+                  consultum: d.consultum || null,
+                  status: d.status || 'pending',
+                }));
+                setDeliberations(mapped);
+                setSelectedDlib(mapped[0]);
+              }
+            });
+            apiFetch('/agents').then(res => {
+              if (res?.agents) {
+                setAvailableSenators(res.agents.map(a => a.id.charAt(0).toUpperCase() + a.id.slice(1)));
+              }
+            });
+          }, []);
 
           return (
             <div style={{ padding: '1.5rem', overflow: 'auto', height: '100%' }}>
@@ -539,14 +597,32 @@
 
         // Castra (军营)
         function Castra() {
-          const [tasks] = useState([
-            { id: 'task-1', title: '处理用户反馈汇总', level: 'L1', status: 'in_progress', assignedAgent: 'Consul', cost: 150, createdAt: new Date(Date.now() - 7200000), dueAt: new Date(Date.now() + 86400000), type: 'legion' },
-            { id: 'task-2', title: '第二季度市场分析', level: 'L2', status: 'pending', assignedAgent: 'Annalist', cost: 450, createdAt: new Date(Date.now() - 3600000), dueAt: new Date(Date.now() + 172800000), type: 'legion' },
-            { id: 'merc-1', title: '数据清洗', level: 'L2', status: 'pending', assignedAgent: '外包商-Alpha', cost: 300, createdAt: new Date(Date.now() - 1800000), dueAt: new Date(Date.now() + 259200000), type: 'mercenary' },
-          ]);
+          const [tasks, setTasks] = useState([]);
           const [selectedTask, setSelectedTask] = useState(null);
           const [filterType, setFilterType] = useState('all');
           const [filterStatus, setFilterStatus] = useState('all');
+
+          useEffect(() => {
+            apiFetch('/tasks').then(res => {
+              if (res?.tasks) {
+                const all = [
+                  ...(res.tasks.active || []).map(t => ({ ...t, type: 'legion' })),
+                  ...(res.tasks.mercenary || []).map(t => ({ ...t, type: 'mercenary' })),
+                ];
+                setTasks(all.map(t => ({
+                  id: t.id,
+                  title: t.title || t.topic || t.id,
+                  level: t.level || 'L0',
+                  status: t.status || 'pending',
+                  assignedAgent: t.assignedAgent || t.assigned_to || '-',
+                  cost: t.cost || t.cost_usd || 0,
+                  createdAt: new Date(t.createdAt || t.created || Date.now()),
+                  dueAt: t.dueAt ? new Date(t.dueAt) : null,
+                  type: t.type,
+                })));
+              }
+            });
+          }, []);
 
           const filteredTasks = tasks.filter(task => {
             const typeMatch = filterType === 'all' || task.type === filterType;
@@ -682,14 +758,25 @@
 
         // Tabularium (档案馆)
         function Tabularium() {
-          const [archive] = useState([
-            { id: 'archive-1', type: 'decision', title: 'Senatus Consultum: Q1 2026战略', date: new Date('2026-03-01'), summary: '决议批准第一季度战略方向。', creator: 'Consul' },
-            { id: 'archive-2', type: 'task_completion', title: '任务完成报告: 用户体验优化', date: new Date('2026-02-28'), summary: '完成用户界面重设计，提升易用性30%。', creator: 'Annalist' },
-            { id: 'archive-3', type: 'deliberation', title: '元老院议题: 组织扩展方案', date: new Date('2026-02-25'), summary: '讨论组织规模扩展的可行性。', creator: 'Tribune' },
-          ]);
+          const [archive, setArchive] = useState([]);
           const [searchQuery, setSearchQuery] = useState('');
           const [filterType, setFilterType] = useState('all');
           const [selectedEntry, setSelectedEntry] = useState(null);
+
+          useEffect(() => {
+            apiFetch('/senate/history').then(res => {
+              if (res?.deliberations?.length) {
+                setArchive(res.deliberations.map(d => ({
+                  id: d.id,
+                  type: 'deliberation',
+                  title: d.topic || d.title || d.id,
+                  date: new Date(d.date || d.started || Date.now()),
+                  summary: d.consultum || d.summary || '',
+                  creator: d.creator || 'Consul',
+                })));
+              }
+            });
+          }, []);
 
           const getTypeIcon = (type) => {
             const icons = { 'decision': '⚖️', 'task_completion': '✅', 'deliberation': '💬', 'policy': '📜' };
@@ -794,6 +881,25 @@
         function Configuratio() {
           const [activeTab, setActiveTab] = useState('spqa');
           const [showSaveMessage, setShowSaveMessage] = useState(false);
+          const [openclawConfig, setOpenclawConfig] = useState({});
+          const [spqaConfig, setSPQAConfig] = useState({});
+          const [agents, setAgents] = useState([]);
+
+          useEffect(() => {
+            apiFetch('/config/openclaw').then(res => { if (res) setOpenclawConfig(res); });
+            apiFetch('/config/spqa').then(res => { if (res) setSPQAConfig(res); });
+            apiFetch('/agents').then(res => {
+              if (res?.agents) {
+                setAgents(res.agents.map(a => ({
+                  id: a.id,
+                  name: a.id.charAt(0).toUpperCase() + a.id.slice(1),
+                  emoji: { consul: '👑', annalist: '📚', curator: '🎯' }[a.id] || '🤖',
+                  enabled: true,
+                  role: (a.soul || '').split('\n')[0].replace(/^#\s*/, '').slice(0, 20),
+                })));
+              }
+            });
+          }, []);
 
           const handleSaveConfig = () => {
             setShowSaveMessage(true);
@@ -921,12 +1027,17 @@
         // Main App Component
         function App() {
           const [currentPage, setCurrentPage] = useState('Curia');
-          const [isConnected, setIsConnected] = useState(true);
+          const [isConnected, setIsConnected] = useState(false);
           const [time, setTime] = React.useState(new Date());
 
           useEffect(() => {
             const timer = setInterval(() => setTime(new Date()), 1000);
-            return () => clearInterval(timer);
+            const checkHealth = () => {
+              apiFetch('/health').then(res => setIsConnected(!!res?.status));
+            };
+            checkHealth();
+            const healthTimer = setInterval(checkHealth, 10000);
+            return () => { clearInterval(timer); clearInterval(healthTimer); };
           }, []);
 
           const pages = [

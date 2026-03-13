@@ -6,88 +6,60 @@ const { useState, useEffect } = window.React;
  * Command center overview showing agent status, active tasks, recent deliberations
  */
 
-const MOCK_AGENTS = [
-  {
-    id: 'consul',
-    name: 'Consul',
-    emoji: '👑',
-    status: 'online',
-    lastActivity: new Date(Date.now() - 5 * 60000),
-    description: '最高决策者',
-  },
-  {
-    id: 'annalist',
-    name: 'Annalist',
-    emoji: '📚',
-    status: 'online',
-    lastActivity: new Date(Date.now() - 15 * 60000),
-    description: '历史记录员',
-  },
-  {
-    id: 'curator',
-    name: 'Curator',
-    emoji: '🎯',
-    status: 'offline',
-    lastActivity: new Date(Date.now() - 2 * 3600000),
-    description: '任务策展人',
-  },
-];
-
-const MOCK_TASKS = [
-  {
-    id: 'task-1',
-    title: '处理用户反馈',
-    level: 'L1',
-    status: 'in_progress',
-    assignedAgent: 'Consul',
-    progress: 65,
-  },
-  {
-    id: 'task-2',
-    title: '分析市场趋势',
-    level: 'L2',
-    status: 'pending',
-    assignedAgent: 'Annalist',
-    progress: 0,
-  },
-  {
-    id: 'task-3',
-    title: '优化工作流',
-    level: 'L0',
-    status: 'completed',
-    assignedAgent: 'Curator',
-    progress: 100,
-  },
-];
-
-const MOCK_DELIBERATIONS = [
-  {
-    id: 'dlib-1',
-    topic: '季度目标评审',
-    phase: 'Consensus',
-    senators: 3,
-    status: '进行中',
-  },
-  {
-    id: 'dlib-2',
-    topic: '资源分配方案',
-    phase: 'Decretum',
-    senators: 5,
-    status: '已完成',
-  },
-];
-
 export default function Curia() {
-  const [agents, setAgents] = useState(MOCK_AGENTS);
-  const [tasks, setTasks] = useState(MOCK_TASKS);
-  const [deliberations, setDeliberations] = useState(MOCK_DELIBERATIONS);
-  const [costToday, setCostToday] = useState(1250);
-  const [costMonth, setCostMonth] = useState(28500);
+  const [agents, setAgents] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [deliberations, setDeliberations] = useState([]);
+  const [costToday, setCostToday] = useState(0);
+  const [costMonth, setCostMonth] = useState(0);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, fetch from API
-    // For MVP, we use mock data
+    const api = window.spqaApi;
+    if (!api) return;
+
+    Promise.all([
+      api.getAllAgents(),
+      api.getAllTasks(),
+      api.getActiveDeliberation(),
+      api.getMercenaryStats(),
+    ]).then(([agentsRes, tasksRes, senateRes, statsRes]) => {
+      if (agentsRes.success && agentsRes.data?.agents) {
+        setAgents(agentsRes.data.agents.map(a => ({
+          ...a,
+          name: a.id.charAt(0).toUpperCase() + a.id.slice(1),
+          emoji: { consul: '👑', annalist: '📚', curator: '🎯' }[a.id] || '🤖',
+          description: (a.soul || '').split('\n')[0].replace(/^#\s*/, '').slice(0, 30),
+          lastActivity: new Date(a.lastActivity),
+        })));
+      }
+      if (tasksRes.success && tasksRes.data?.tasks) {
+        const all = [...(tasksRes.data.tasks.active || []), ...(tasksRes.data.tasks.mercenary || [])];
+        setTasks(all.map(t => ({
+          id: t.id,
+          title: t.title || t.topic || t.id,
+          level: t.level || 'L0',
+          status: t.status || 'pending',
+          assignedAgent: t.assignedAgent || t.assigned_to || '-',
+          progress: t.progress || (t.status === 'completed' ? 100 : 0),
+        })));
+      }
+      if (senateRes.success && senateRes.data?.active) {
+        setDeliberations(senateRes.data.active.map(d => ({
+          id: d.id,
+          topic: d.topic || d.title || d.id,
+          phase: d.phase || 'Cogitatio',
+          senators: d.senators?.length || 0,
+          status: d.status === 'completed' ? '已完成' : '进行中',
+        })));
+      }
+      if (statsRes.success && statsRes.data) {
+        setCostToday(statsRes.data.totalCost || 0);
+        setCostMonth(statsRes.data.totalCost || 0);
+      }
+      setLoading(false);
+    });
   }, []);
 
   const onlineCount = agents.filter(a => a.status === 'online').length;

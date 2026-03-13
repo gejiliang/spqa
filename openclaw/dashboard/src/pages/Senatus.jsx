@@ -8,47 +8,40 @@ const { useState, useEffect } = window.React;
 
 const PHASES = ['Cogitatio', 'Contentio', 'Consensus', 'Decretum'];
 
-const MOCK_DELIBERATIONS = [
-  {
-    id: 'dlib-1',
-    topic: '季度目标评审',
-    phase: 'Consensus',
-    phaseIndex: 2,
-    senators: ['Consul', 'Curator', 'Scribe'],
-    startedAt: new Date(Date.now() - 3600000),
-    consultum: '同意推进第四季度战略目标，聚焦市场扩张与产品创新。',
-    status: 'in_progress',
-  },
-  {
-    id: 'dlib-2',
-    topic: '资源分配方案',
-    phase: 'Decretum',
-    phaseIndex: 3,
-    senators: ['Consul', 'Annalist', 'Curator', 'Scribe', 'Tribune'],
-    startedAt: new Date(Date.now() - 86400000),
-    consultum: '决议：批准2026年资源分配方案，重点投入AI基础设施与人才培养。',
-    status: 'completed',
-  },
-  {
-    id: 'dlib-3',
-    topic: '新组织层级提案',
-    phase: 'Cogitatio',
-    phaseIndex: 0,
-    senators: ['Consul', 'Tribune'],
-    startedAt: new Date(Date.now() - 600000),
-    consultum: null,
-    status: 'pending',
-  },
-];
-
 export default function Senatus() {
-  const [deliberations, setDeliberations] = useState(MOCK_DELIBERATIONS);
-  const [selectedDlib, setSelectedDlib] = useState(MOCK_DELIBERATIONS[0]);
+  const [deliberations, setDeliberations] = useState([]);
+  const [selectedDlib, setSelectedDlib] = useState(null);
   const [newTopic, setNewTopic] = useState('');
   const [selectedSenators, setSelectedSenators] = useState([]);
   const [showNewForm, setShowNewForm] = useState(false);
+  const [availableSenators, setAvailableSenators] = useState([]);
 
-  const availableSenators = ['Consul', 'Annalist', 'Curator', 'Scribe', 'Tribune', 'Legatus'];
+  useEffect(() => {
+    const api = window.spqaApi;
+    if (!api) return;
+
+    api.getActiveDeliberation().then(res => {
+      if (res.success && res.data?.active?.length) {
+        const mapped = res.data.active.map(d => ({
+          id: d.id,
+          topic: d.topic || d.title || d.id,
+          phase: d.phase || 'Cogitatio',
+          phaseIndex: PHASES.indexOf(d.phase || 'Cogitatio'),
+          senators: d.senators || [],
+          startedAt: new Date(d.started || d.startedAt || Date.now()),
+          consultum: d.consultum || null,
+          status: d.status || 'pending',
+        }));
+        setDeliberations(mapped);
+        setSelectedDlib(mapped[0]);
+      }
+    });
+    api.getAllAgents().then(res => {
+      if (res.success && res.data?.agents) {
+        setAvailableSenators(res.data.agents.map(a => a.id.charAt(0).toUpperCase() + a.id.slice(1)));
+      }
+    });
+  }, []);
 
   const handleToggleSenator = (senator) => {
     setSelectedSenators(prev =>
@@ -60,18 +53,26 @@ export default function Senatus() {
 
   const handleCreateDeliberation = () => {
     if (newTopic.trim()) {
-      const newDlib = {
-        id: `dlib-${Date.now()}`,
-        topic: newTopic,
-        phase: 'Cogitatio',
-        phaseIndex: 0,
-        senators: selectedSenators.length > 0 ? selectedSenators : ['Consul'],
-        startedAt: new Date(),
-        consultum: null,
-        status: 'pending',
-      };
-      setDeliberations([newDlib, ...deliberations]);
-      setSelectedDlib(newDlib);
+      const api = window.spqaApi;
+      if (api) {
+        api.startDeliberation(newTopic, selectedSenators.length > 0 ? selectedSenators : ['Consul']).then(res => {
+          if (res.success && res.data?.deliberation) {
+            const d = res.data.deliberation;
+            const newDlib = {
+              id: d.id,
+              topic: d.topic,
+              phase: d.phase || 'Cogitatio',
+              phaseIndex: 0,
+              senators: d.senators || selectedSenators,
+              startedAt: new Date(d.started || Date.now()),
+              consultum: null,
+              status: 'pending',
+            };
+            setDeliberations([newDlib, ...deliberations]);
+            setSelectedDlib(newDlib);
+          }
+        });
+      }
       setNewTopic('');
       setSelectedSenators([]);
       setShowNewForm(false);

@@ -2,9 +2,15 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "spqa-engine",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["openclaw/engine/server.js"],
+      "port": 3000
+    },
+    {
       "name": "spqa-dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "5173", "-d", "openclaw/dashboard"],
       "port": 5173
     }
   ]
