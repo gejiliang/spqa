@@ -1,0 +1,154 @@
+meta:
+  name: "SPQA · Senatus Populusque Agentium"
+  version: "1.0.0"
+  author: "SPQA"
+  description: "罗马共和国主题 · 元老院与Agent"
+  palette:
+    primary: "#8B0000"      # 深红（罗马紫红）
+    secondary: "#DAA520"    # 金色
+    background: "#1a1a2e"   # 深蓝黑
+    surface: "#16213e"      # 稍亮的蓝黑
+    text: "#e0e0e0"
+    accent: "#C0392B"       # 亮红
+    success: "#27AE60"
+    warning: "#F39C12"
+    error: "#E74C3C"
+
+roles:
+  # Each role has: name, title (plural/group), emoji, description, color, tier
+  caesar:
+    name: "Caesar · 凯撒"
+    title: "Imperator"
+    emoji: "🏛"
+    description: "最高决策者 · 你本人"
+    color: "#FFD700"          # 金色
+    tier: "supreme"
+
+  consul:
+    name: "Consul · 执政官"
+    title: "Consul"
+    emoji: "⚜️"
+    description: "首席助理 · 日常管家 · 项目启动器"
+    color: "#C0392B"
+    tier: "always-on"
+
+  praetor:
+    name: "Praetor · 裁判官"
+    title: "Praetor"
+    emoji: "⚖️"
+    description: "议题分析师 · 元老筛选器"
+    color: "#8E44AD"
+    tier: "skill"
+
+  senator:
+    name: "Senator · 元老"
+    title: "Senatus"
+    emoji: "🏛"
+    description: "集体智慧 · 多视角决策"
+    color: "#2980B9"
+    tier: "ephemeral"
+
+  legionary:
+    name: "Legionarius · 军团兵"
+    title: "Legionarii"
+    emoji: "⚔️"
+    description: "临时执行者 · 按决议行动"
+    color: "#27AE60"
+    tier: "ephemeral"
+
+  annalist:
+    name: "Annalista · 史官"
+    title: "Annalista"
+    emoji: "📚"
+    description: "组织记忆管理员 · 归档一切"
+    color: "#8B4513"
+    tier: "always-on"
+
+  curator:
+    name: "Curator Aquarum · 水道官"
+    title: "Curator"
+    emoji: "🌊"
+    description: "IT运维 · API成本监控 · 系统健康"
+    color: "#1ABC9C"
+    tier: "always-on"
+
+  quaestor:
+    name: "Quaestor · 财务官"
+    title: "Quaestor"
+    emoji: "💰"
+    description: "凯撒的财务管家"
+    color: "#F1C40F"
+    tier: "optional"
+
+  explorator:
+    name: "Explorator · 探路者"
+    title: "Explorator"
+    emoji: "🔍"
+    description: "情报侦察 · 行业动态 · 舆情监测"
+    color: "#E67E22"
+    tier: "optional"
+
+  mercenary:
+    name: "Mercenarius · 佣兵"
+    title: "Mercenarii"
+    emoji: "🗡️"
+    description: "外部雇佣的专业执行者 · 按需征召"
+    color: "#95A5A6"
+    tier: "external"
+
+  praetorian:
+    name: "Praetorianus · 禁卫军"
+    title: "Cohors Praetoria"
+    emoji: "🛡️"
+    description: "凯撒直属特勤队 · 持久化项目组"
+    color: "#2C3E50"
+    tier: "project-persistent"
+
+  configurator:
+    name: "Praefectus Fabrum · 工程长"
+    title: "Praefectus"
+    emoji: "🔧"
+    description: "系统配置管理 · Dashboard 背后的手"
+    color: "#7F8C8D"
+    tier: "system"
+
+# Tier display order and labels
+tiers:
+  supreme:
+    label: "至高权力"
+    order: 0
+  always-on:
+    label: "核心卫戍 · Praesidium"
+    order: 1
+  skill:
+    label: "执政官技能"
+    order: 2
+  ephemeral:
+    label: "临时征召 · Temporarii"
+    order: 3
+  external:
+    label: "外部佣兵 · Mercenarii"
+    order: 4
+  project-persistent:
+    label: "禁卫军 · Praetoriani"
+    order: 5
+  optional:
+    label: "可选幕僚 · Optiones"
+    order: 6
+  system:
+    label: "系统角色"
+    order: 7
+
+# Dashboard layout hints
+layout:
+  sidebar_order:
+    - caesar
+    - consul
+    - annalist
+    - curator
+    - mercenary
+    - praetorian
+  status_bar:
+    show_active_agents: true
+    show_active_tasks: true
+    show_cost_today: true

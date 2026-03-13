@@ -1,0 +1,68 @@
+# SPQA · Docker Compose · MVP 部署
+# 启动: docker compose up -d
+# 停止: docker compose down
+
+version: "3.8"
+
+services:
+  # === OpenClaw Gateway ===
+  # OpenClaw 运行时引擎（AI Agent Runtime）
+  openclaw:
+    image: openclaw/openclaw:latest
+    container_name: spqa-openclaw
+    ports:
+      - "18789:18789"         # Gateway WebSocket
+    volumes:
+      - ./agents:/root/.openclaw/agents
+      - ./spqa:/root/.openclaw/spqa
+      - ./openclaw.json:/root/.openclaw/openclaw.json
+    environment:
+      - OPENCLAW_LOG_LEVEL=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # === Engine API Server ===
+  # SPQA 中间层（REST API + WebSocket）
+  engine:
+    build:
+      context: ./engine
+      dockerfile: Dockerfile
+    container_name: spqa-engine
+    ports:
+      - "3000:3000"           # REST API
+      - "4000:4000"           # WebSocket events
+    environment:
+      - OPENCLAW_HOME=/openclaw
+      - SPQA_HOME=/openclaw/spqa
+      - GATEWAY_WS_URL=ws://openclaw:18789
+      - ENGINE_PORT=3000
+      - WS_PORT=4000
+    volumes:
+      - ./agents:/openclaw/agents:ro
+      - ./spqa:/openclaw/spqa
+      - ./openclaw.json:/openclaw/openclaw.json
+    depends_on:
+      openclaw:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # === Dashboard ===
+  # SPQA 用户界面（静态文件服务）
+  dashboard:
+    image: nginx:alpine
+    container_name: spqa-dashboard
+    ports:
+      - "5173:80"             # Dashboard UI
+    volumes:
+      - ./dashboard:/usr/share/nginx/html:ro
+      - ./dashboard/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - engine
+    restart: unless-stopped
+
+volumes:
+  openclaw_data:

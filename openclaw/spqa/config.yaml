@@ -1,0 +1,55 @@
+# SPQA 全局配置 · Senatus Populusque Agentium
+# Engine API Server 和各 Skill 读取此文件
+
+# === 基本信息 ===
+spqa:
+  version: "0.1.0"
+  name: "SPQA"
+  language: "zh-CN"
+
+# === 元老院配置 ===
+senatus:
+  min_senators: 3                    # 最小组阁人数
+  max_senators: 5                    # 最大组阁人数
+  max_deliberation_rounds: 3         # 最大收敛轮数，超过 → Appellatio ad Caesarem
+  senator_template_dir: "spqa/senators"
+  phase_timeout_minutes: 10          # 单阶段超时
+  max_concurrent_spawn: 6            # 并发 spawn 上限（Gateway 安全线）
+
+# === 军团兵配置 ===
+legiones:
+  max_concurrent_per_batch: 5        # DAG 每批次最大并发
+  task_timeout_minutes: 30           # 单任务超时
+  retry_on_failure: 1                # 失败重试次数
+  default_cleanup: "archive"         # 默认 cleanup 策略
+
+# === 佣兵配置 ===
+mercenarii:
+  default_agent: "claude-code"       # MVP 默认佣兵
+  cost_limit_per_task_usd: 1.00      # 单任务费用上限
+  timeout_seconds: 300               # 默认 5 分钟超时
+  require_caesar_approval:           # 需要凯撒审批的操作类型
+    - database_write
+    - external_api_call
+    - deploy
+    - cost_over_limit
+
+# === 禁卫军配置 ===
+praetoriani:
+  cohort_template_dir: "spqa/cohort-templates"
+  standard_roles:                    # 标准角色骨架
+    - strategus                      # 谋略官
+    - custos                         # 守卫官
+    - executor                       # 执行官
+    - tabularius                     # 记录官
+
+# === 主题配置 ===
+theme:
+  active: "spqa-roman"               # 当前激活皮肤
+  dir: "spqa/themes"
+
+# === 多实例配置（远期） ===
+instances:
+  nexus:
+    url: "http://localhost:18789"
+    role: "primary"

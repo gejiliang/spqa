@@ -1,0 +1,17 @@
+{
+  "name": "spqa-engine",
+  "version": "0.1.0",
+  "description": "SPQA Engine API Server",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "ws": "^8.16.0",
+    "cors": "^2.8.5",
+    "yaml": "^2.3.0",
+    "chokidar": "^3.5.3"
+  }
+}

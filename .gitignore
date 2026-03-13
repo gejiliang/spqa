@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+/tmp/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+
+# Build
+dist/
+build/
+
+# OpenClaw runtime data (generated at runtime)
+openclaw/agents/consul/workspace/active/
+openclaw/agents/consul/workspace/mercenarii/
+openclaw/sessions/

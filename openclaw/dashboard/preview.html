@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPQA 指挥中心 - Preview</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a2e; color: #e0e0e0; font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; }
+
+  /* Layout */
+  .app { display: flex; height: 100vh; }
+  .sidebar { width: 220px; background: #0f1a2e; border-right: 1px solid #DAA52040; display: flex; flex-direction: column; }
+  .main { flex: 1; overflow-y: auto; padding: 1.5rem; }
+
+  /* Sidebar */
+  .logo { padding: 1.2rem; text-align: center; border-bottom: 1px solid #DAA52040; }
+  .logo h1 { color: #DAA520; font-size: 1.1rem; letter-spacing: 2px; }
+  .logo .sub { color: #888; font-size: 0.7rem; margin-top: 4px; }
+  .nav { flex: 1; padding: 0.5rem 0; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; cursor: pointer; color: #aaa; font-size: 0.85rem; transition: all 0.2s; border-left: 3px solid transparent; }
+  .nav-item:hover { background: #16213e; color: #e0e0e0; }
+  .nav-item.active { background: #16213e; color: #DAA520; border-left-color: #DAA520; }
+  .nav-item .emoji { font-size: 1.1rem; width: 24px; text-align: center; }
+  .sidebar-footer { padding: 12px; border-top: 1px solid #DAA52040; text-align: center; }
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .status-dot.green { background: #4ade80; box-shadow: 0 0 6px #4ade8060; }
+  .status-dot.red { background: #ef4444; }
+  .sidebar-footer .text { font-size: 0.7rem; color: #888; }
+
+  /* Page Header */
+  .page-title { font-size: 1.8rem; font-weight: bold; color: #DAA520; margin-bottom: 0.3rem; }
+  .page-desc { color: #888; font-size: 0.85rem; margin-bottom: 1.5rem; }
+
+  /* Stats Row */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+  .stat-card { background: linear-gradient(135deg, #16213e, #0f3460); border: 1px solid #DAA52030; border-radius: 10px; padding: 1rem; }
+  .stat-label { font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+  .stat-value { font-size: 1.8rem; font-weight: bold; margin: 4px 0; }
+  .stat-value.gold { color: #DAA520; }
+  .stat-value.green { color: #4ade80; }
+  .stat-value.red { color: #C0392B; }
+  .stat-value.blue { color: #3498db; }
+  .stat-change { font-size: 0.7rem; color: #4ade80; }
+
+  /* Cards */
+  .card { background: linear-gradient(135deg, #16213e 0%, #0f3460 100%); border: 1px solid #DAA52030; border-radius: 10px; padding: 1rem; transition: all 0.3s; }
+  .card:hover { border-color: #DAA520; transform: translateY(-2px); box-shadow: 0 4px 20px rgba(218,165,32,0.1); }
+  .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; }
+  .card-title { font-size: 1rem; font-weight: 600; color: #DAA520; }
+
+  /* Grid */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+
+  /* Agent Card */
+  .agent-card { display: flex; align-items: center; gap: 12px; padding: 0.8rem; background: #1a1a2e; border-radius: 8px; border: 1px solid #ffffff10; }
+  .agent-card .avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; border: 2px solid; }
+  .agent-card .info { flex: 1; }
+  .agent-card .name { font-weight: 600; font-size: 0.85rem; }
+  .agent-card .role { font-size: 0.7rem; color: #888; }
+
+  /* Badge */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.65rem; font-weight: 600; }
+  .badge-gold { background: #DAA52020; color: #DAA520; border: 1px solid #DAA52040; }
+  .badge-green { background: #4ade8020; color: #4ade80; border: 1px solid #4ade8040; }
+  .badge-red { background: #C0392B20; color: #C0392B; border: 1px solid #C0392B40; }
+  .badge-blue { background: #3498db20; color: #3498db; border: 1px solid #3498db40; }
+  .badge-purple { background: #8E44AD20; color: #8E44AD; border: 1px solid #8E44AD40; }
+
+  /* Task Row */
+  .task-row { display: flex; align-items: center; gap: 12px; padding: 10px; border-bottom: 1px solid #ffffff08; }
+  .task-row:last-child { border-bottom: none; }
+  .task-title { flex: 1; font-size: 0.85rem; }
+  .progress-bar { width: 100px; height: 6px; background: #1a1a2e; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+
+  /* Deliberation */
+  .delib-card { border-left: 3px solid #DAA520; margin-bottom: 0.8rem; }
+  .phase-tag { font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; }
+
+  /* Timeline */
+  .timeline-item { display: flex; gap: 12px; padding: 8px 0; }
+  .timeline-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+  .timeline-content { flex: 1; }
+  .timeline-time { font-size: 0.65rem; color: #666; }
+  .timeline-text { font-size: 0.8rem; color: #ccc; }
+
+  /* Senator grid */
+  .senator-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; }
+  .senator-chip { background: #1a1a2e; border: 1px solid #ffffff10; border-radius: 8px; padding: 10px; text-align: center; font-size: 0.75rem; transition: all 0.2s; cursor: pointer; }
+  .senator-chip:hover { border-color: #DAA520; transform: scale(1.02); }
+  .senator-chip .emoji { font-size: 1.5rem; display: block; margin-bottom: 4px; }
+  .senator-chip .name { color: #DAA520; font-weight: 600; font-size: 0.7rem; }
+  .senator-chip .desc { color: #888; font-size: 0.6rem; margin-top: 2px; }
+
+  /* Tab-like sections */
+  .section-title { font-size: 0.85rem; color: #DAA520; font-weight: 600; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 8px; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: #DAA52030; }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    .senator-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="logo">
+      <h1>S · P · Q · A</h1>
+      <div class="sub">Senatus Populusque Agentium</div>
+    </div>
+    <div class="nav">
+      <div class="nav-item active"><span class="emoji">🏛</span> 指挥中心</div>
+      <div class="nav-item" onclick="showPage('senatus')"><span class="emoji">⚖️</span> 元老院</div>
+      <div class="nav-item" onclick="showPage('castra')"><span class="emoji">⚔️</span> 军营</div>
+      <div class="nav-item" onclick="showPage('tabularium')"><span class="emoji">📜</span> 档案馆</div>
+      <div class="nav-item" onclick="showPage('config')"><span class="emoji">🔧</span> 配置</div>
+    </div>
+    <div class="sidebar-footer">
+      <div><span class="status-dot green"></span><span class="text">Engine Connected</span></div>
+      <div style="margin-top:4px"><span class="text">v0.1.0 · MVP</span></div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main" id="mainContent">
+
+    <!-- Page: Curia (指挥中心) -->
+    <div id="page-curia">
+      <div class="page-title">🏛 指挥中心 (Curia)</div>
+      <div class="page-desc">SPQA 组织架构命令中心 · 实时监控和控制</div>
+
+      <!-- Stats -->
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-label">在线 Agent</div>
+          <div class="stat-value gold">3</div>
+          <div class="stat-change">consul · annalist · curator</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">活跃任务</div>
+          <div class="stat-value green">2</div>
+          <div class="stat-change">1 个审议中</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">今日 API 开销</div>
+          <div class="stat-value blue">$1.25</div>
+          <div class="stat-change">预算 $5.00</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">本月累计</div>
+          <div class="stat-value red">$28.50</div>
+          <div class="stat-change">预算 $100.00</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Agents -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">⚜️ 核心驻军 (Praesidium)</div>
+            <span class="badge badge-green">3 在线</span>
+          </div>
+          <div class="agent-card" style="margin-bottom:8px">
+            <div class="avatar" style="border-color:#C0392B; background:#C0392B20">⚜️</div>
+            <div class="info">
+              <div class="name">Consul · 执政官</div>
+              <div class="role">首席助理 · 日常管家 · 项目启动器</div>
+            </div>
+            <span class="status-dot green"></span>
+          </div>
+          <div class="agent-card" style="margin-bottom:8px">
+            <div class="avatar" style="border-color:#8B4513; background:#8B451320">📚</div>
+            <div class="info">
+              <div class="name">Annalista · 史官</div>
+              <div class="role">组织记忆管理员 · 归档一切</div>
+            </div>
+            <span class="status-dot green"></span>
+          </div>
+          <div class="agent-card">
+            <div class="avatar" style="border-color:#1ABC9C; background:#1ABC9C20">🌊</div>
+            <div class="info">
+              <div class="name">Curator Aquarum · 水道官</div>
+              <div class="role">IT运维 · API成本监控 · 系统健康</div>
+            </div>
+            <span class="status-dot green"></span>
+          </div>
+        </div>
+
+        <!-- Active Tasks -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📋 活跃任务</div>
+            <span class="badge badge-gold">3 任务</span>
+          </div>
+          <div class="task-row">
+            <span class="badge badge-blue">L1</span>
+            <div class="task-title">处理用户反馈</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:65%;background:#DAA520"></div></div>
+            <span style="font-size:0.7rem;color:#888">65%</span>
+          </div>
+          <div class="task-row">
+            <span class="badge badge-purple">L2</span>
+            <div class="task-title">分析市场趋势 (审议中)</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:30%;background:#8E44AD"></div></div>
+            <span style="font-size:0.7rem;color:#888">30%</span>
+          </div>
+          <div class="task-row">
+            <span class="badge badge-green">L0</span>
+            <div class="task-title">优化工作流</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:100%;background:#4ade80"></div></div>
+            <span style="font-size:0.7rem;color:#888">✓</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Deliberation -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">⚖️ 当前审议</div>
+          </div>
+          <div class="delib-card card" style="background:#1a1a2e;padding:10px;margin-bottom:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span style="font-weight:600;font-size:0.85rem">季度目标评审</span>
+              <span class="phase-tag" style="background:#DAA52020;color:#DAA520">Consensus</span>
+            </div>
+            <div style="font-size:0.7rem;color:#888">3 位元老参与 · 第 2 轮</div>
+            <div style="display:flex;gap:6px;margin-top:6px">
+              <span style="font-size:1rem">💰</span>
+              <span style="font-size:1rem">📊</span>
+              <span style="font-size:1rem">⚖️</span>
+            </div>
+          </div>
+          <div class="delib-card card" style="background:#1a1a2e;padding:10px;border-left-color:#4ade80">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span style="font-weight:600;font-size:0.85rem">资源分配方案</span>
+              <span class="phase-tag" style="background:#4ade8020;color:#4ade80">Decretum ✓</span>
+            </div>
+            <div style="font-size:0.7rem;color:#888">5 位元老参与 · 已达成共识</div>
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">📡 最近活动</div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot" style="background:#4ade80"></div>
+            <div class="timeline-content">
+              <div class="timeline-time">2 分钟前</div>
+              <div class="timeline-text">Consul 完成了 L0 任务「优化工作流」</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot" style="background:#DAA520"></div>
+            <div class="timeline-content">
+              <div class="timeline-time">15 分钟前</div>
+              <div class="timeline-text">元老院审议「季度目标评审」进入 Consensus 阶段</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot" style="background:#3498db"></div>
+            <div class="timeline-content">
+              <div class="timeline-time">1 小时前</div>
+              <div class="timeline-text">Annalista 归档了 3 条审议记录</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot" style="background:#1ABC9C"></div>
+            <div class="timeline-content">
+              <div class="timeline-time">3 小时前</div>
+              <div class="timeline-text">Curator 完成 6 小时健康巡检 · 一切正常</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot" style="background:#8E44AD"></div>
+            <div class="timeline-content">
+              <div class="timeline-time">5 小时前</div>
+              <div class="timeline-text">Mercenarius 完成外部 API 调用 · $0.35</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page: Senatus (元老院) -->
+    <div id="page-senatus" style="display:none">
+      <div class="page-title">⚖️ 元老院 (Senatus)</div>
+      <div class="page-desc">集体智慧 · 多视角决策 · 12 位元老随时待命</div>
+
+      <div class="section-title">可召唤元老</div>
+      <div class="senator-grid">
+        <div class="senator-chip">
+          <span class="emoji">💰</span>
+          <div class="name">Oeconomicus</div>
+          <div class="desc">经济与商业模式</div>
+        </div>
+        <div class="senator-chip">
+          <span class="emoji">📊</span>
+          <div class="name">Numerarius</div>
+          <div class="desc">数据分析与量化</div>
+        </div>
+        <div class="senator-chip">
+          <span class="emoji">🏗️</span>
+          <div class="name">Architectus</div>
+          <div class="desc">系统架构与技术方向</div>
+        </div>
+        <div class="senator-chip">
+          <span class="emoji">⚙️</span>
+          <div class="name">Fabricator</div>
+          <div class="desc">工程实现与代码质量</div>
+        </div>
+        <div class="senator-chip">
+          <span class="emoji">🎨</span>
+          <div class="name">Artifex</div>
+          <div class="desc">产品设计与用户体验</div>
+        </div>
+        <div class="senator-chip">
+          <span class="emoji">🛡️</span>
+          <div class="name">Cautus</div>
+          <div class="desc">风险评估与安全</div>
+        </div>
+        <div class="senator-chip">
+          <span class="emoji">🔬</span>
+          <div class="name">Analyticus</div>
+          <div class="desc">研究方法与信息验证</div>
+        </div>
+        <div class="senator-chip">
+          <span class="emoji">📋</span>
+          <div class="name">Operarius</div>
+          <div class="desc">运营与流程优化</div>
+        </div>
+        <div class="senator-chip">
+          <span class="emoji">💵</span>
+          <div class="name">Argentarius</div>
+          <div class="desc">财务管理与合规</div>
+        </div>
+        <div class="senator-chip">
+          <span class="emoji">⚖️</span>
+          <div class="name">Iuridicus</div>
+          <div class="desc">法律合规与治理</div>
+        </div>
+        <div class="senator-chip">
+          <span class="emoji">📈</span>
+          <div class="name">Mercator</div>
+          <div class="desc">市场营销与增长</div>
+        </div>
+        <div class="senator-chip">
+          <span class="emoji">🤝</span>
+          <div class="name">Humanitas</div>
+          <div class="desc">人文关怀与社会影响</div>
+        </div>
+      </div>
+
+      <div style="margin-top:1.5rem">
+        <div class="section-title">审议流程 (Ordo Deliberandi)</div>
+        <div style="display:flex;gap:12px;align-items:center;padding:1rem;background:#16213e;border-radius:10px;border:1px solid #DAA52020">
+          <div style="text-align:center;flex:1">
+            <div style="font-size:1.5rem">🤔</div>
+            <div style="font-size:0.7rem;color:#DAA520;font-weight:600">Cogitatio</div>
+            <div style="font-size:0.6rem;color:#888">独立思考</div>
+          </div>
+          <div style="color:#DAA52060;font-size:1.2rem">→</div>
+          <div style="text-align:center;flex:1">
+            <div style="font-size:1.5rem">⚔️</div>
+            <div style="font-size:0.7rem;color:#DAA520;font-weight:600">Contentio</div>
+            <div style="font-size:0.6rem;color:#888">交叉辩论</div>
+          </div>
+          <div style="color:#DAA52060;font-size:1.2rem">→</div>
+          <div style="text-align:center;flex:1">
+            <div style="font-size:1.5rem">🤝</div>
+            <div style="font-size:0.7rem;color:#DAA520;font-weight:600">Consensus</div>
+            <div style="font-size:0.6rem;color:#888">共识达成</div>
+          </div>
+          <div style="color:#DAA52060;font-size:1.2rem">→</div>
+          <div style="text-align:center;flex:1">
+            <div style="font-size:1.5rem">📜</div>
+            <div style="font-size:0.7rem;color:#DAA520;font-weight:600">Decretum</div>
+            <div style="font-size:0.6rem;color:#888">最终决议</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:1.5rem">
+        <div class="section-title">配置参数</div>
+        <div class="card" style="font-size:0.8rem;font-family:monospace">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div><span style="color:#888">最小组阁:</span> <span style="color:#DAA520">3</span> 位元老</div>
+            <div><span style="color:#888">最大组阁:</span> <span style="color:#DAA520">5</span> 位元老</div>
+            <div><span style="color:#888">最大轮数:</span> <span style="color:#DAA520">3</span> 轮</div>
+            <div><span style="color:#888">并发上限:</span> <span style="color:#DAA520">6</span> spawn</div>
+            <div><span style="color:#888">阶段超时:</span> <span style="color:#DAA520">10</span> 分钟</div>
+            <div><span style="color:#888">Cleanup:</span> <span style="color:#DAA520">archive</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page: Castra (军营) -->
+    <div id="page-castra" style="display:none">
+      <div class="page-title">⚔️ 军营 (Castra)</div>
+      <div class="page-desc">任务执行 · 军团兵与佣兵管理</div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🏋️ 军团兵 (Legionarii)</div>
+            <span class="badge badge-green">DAG 执行</span>
+          </div>
+          <div style="padding:8px 0">
+            <div style="font-size:0.8rem;color:#888;margin-bottom:8px">按 DAG 拓扑排序批量执行子任务</div>
+            <div class="card" style="background:#1a1a2e;padding:8px;margin-bottom:6px">
+              <div style="display:flex;justify-content:space-between;font-size:0.8rem">
+                <span>Batch 1: 前端重构</span>
+                <span class="badge badge-green">✓ 完成</span>
+              </div>
+            </div>
+            <div class="card" style="background:#1a1a2e;padding:8px;margin-bottom:6px">
+              <div style="display:flex;justify-content:space-between;font-size:0.8rem">
+                <span>Batch 2: API 对接</span>
+                <span class="badge badge-gold">执行中</span>
+              </div>
+              <div class="progress-bar" style="margin-top:6px"><div class="progress-fill" style="width:45%;background:#DAA520"></div></div>
+            </div>
+            <div class="card" style="background:#1a1a2e;padding:8px">
+              <div style="display:flex;justify-content:space-between;font-size:0.8rem">
+                <span>Batch 3: 集成测试</span>
+                <span class="badge badge-blue">等待中</span>
+              </div>
+            </div>
+          </div>
+          <div style="font-size:0.7rem;color:#888;margin-top:8px">最大并发: 5/batch · 超时: 30min · 重试: 1次</div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🗡️ 佣兵 (Mercenarii)</div>
+            <span class="badge badge-purple">ACP 外派</span>
+          </div>
+          <div style="padding:8px 0">
+            <div style="font-size:0.8rem;color:#888;margin-bottom:8px">外部 AI 工具调用 via Agent Client Protocol</div>
+            <div class="card" style="background:#1a1a2e;padding:8px;margin-bottom:6px">
+              <div style="display:flex;justify-content:space-between;font-size:0.8rem">
+                <span>claude-code · 代码审查</span>
+                <span style="color:#4ade80;font-size:0.7rem">$0.35</span>
+              </div>
+              <div style="font-size:0.65rem;color:#888;margin-top:2px">5 分钟前完成 · 耗时 45s</div>
+            </div>
+            <div class="card" style="background:#1a1a2e;padding:8px;margin-bottom:6px">
+              <div style="display:flex;justify-content:space-between;font-size:0.8rem">
+                <span>claude-code · 文档生成</span>
+                <span style="color:#DAA520;font-size:0.7rem">$0.22</span>
+              </div>
+              <div style="font-size:0.65rem;color:#888;margin-top:2px">执行中 · 预计 30s</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;font-size:0.7rem">
+            <div class="card" style="background:#1a1a2e;padding:6px;text-align:center">
+              <div style="color:#888">总调用</div>
+              <div style="color:#DAA520;font-weight:bold">12</div>
+            </div>
+            <div class="card" style="background:#1a1a2e;padding:6px;text-align:center">
+              <div style="color:#888">总花费</div>
+              <div style="color:#DAA520;font-weight:bold">$4.50</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page: Tabularium (档案馆) -->
+    <div id="page-tabularium" style="display:none">
+      <div class="page-title">📜 档案馆 (Tabularium)</div>
+      <div class="page-desc">所有决策、审议和交付成果的永久记录</div>
+
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header">
+          <div class="card-title">📊 归档统计</div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;text-align:center">
+          <div><div style="font-size:1.5rem;color:#DAA520;font-weight:bold">24</div><div style="font-size:0.7rem;color:#888">审议记录</div></div>
+          <div><div style="font-size:1.5rem;color:#4ade80;font-weight:bold">156</div><div style="font-size:0.7rem;color:#888">任务完成</div></div>
+          <div><div style="font-size:1.5rem;color:#3498db;font-weight:bold">42</div><div style="font-size:0.7rem;color:#888">佣兵调用</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📝 最近归档</div>
+        </div>
+        <div class="task-row">
+          <span style="font-size:0.9rem">📜</span>
+          <div class="task-title">SC-2026-012: 资源分配方案 (Decretum)</div>
+          <span style="font-size:0.65rem;color:#888">3 小时前</span>
+        </div>
+        <div class="task-row">
+          <span style="font-size:0.9rem">⚔️</span>
+          <div class="task-title">LEG-047: 前端重构任务组 (5/5 完成)</div>
+          <span style="font-size:0.65rem;color:#888">昨天</span>
+        </div>
+        <div class="task-row">
+          <span style="font-size:0.9rem">🗡️</span>
+          <div class="task-title">MER-089: claude-code 代码审查 ($0.35)</div>
+          <span style="font-size:0.65rem;color:#888">昨天</span>
+        </div>
+        <div class="task-row">
+          <span style="font-size:0.9rem">📜</span>
+          <div class="task-title">SC-2026-011: 技术选型审议 (Decretum)</div>
+          <span style="font-size:0.65rem;color:#888">2 天前</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page: Config (配置) -->
+    <div id="page-config" style="display:none">
+      <div class="page-title">🔧 配置 (Configuratio)</div>
+      <div class="page-desc">SPQA 系统参数 · OpenClaw 配置 · 主题管理</div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><div class="card-title">📄 openclaw.json</div></div>
+          <pre style="font-size:0.7rem;color:#ccc;background:#1a1a2e;padding:10px;border-radius:6px;overflow-x:auto;white-space:pre-wrap">{
+  "agents": {
+    "defaults": {
+      "tools": { "sessions": { "visibility": "self" } }
+    },
+    "consul": {
+      "dmScope": "main",
+      "tools": { "sessions": { "visibility": "tree" } }
+    },
+    "annalist": { "dmScope": "per-peer" }
+  },
+  "agentToAgent": { "allow": "all" }
+}</pre>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">⚙️ SPQA config.yaml</div></div>
+          <pre style="font-size:0.7rem;color:#ccc;background:#1a1a2e;padding:10px;border-radius:6px;overflow-x:auto;white-space:pre-wrap">senatus:
+  max_concurrent_spawn: 6
+  max_deliberation_rounds: 3
+  phase_timeout_minutes: 10
+
+legiones:
+  max_concurrent_per_batch: 5
+  task_timeout_minutes: 30
+
+mercenarii:
+  default_agent: claude-code
+  cost_limit_per_task_usd: 1.00
+  timeout_seconds: 300</pre>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:1rem">
+        <div class="card-header"><div class="card-title">🎨 主题: spqa-roman</div></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+          <div style="text-align:center;padding:8px">
+            <div style="width:40px;height:40px;border-radius:50%;background:#8B0000;margin:0 auto 4px"></div>
+            <div style="font-size:0.65rem;color:#888">Primary</div>
+            <div style="font-size:0.6rem;color:#aaa">#8B0000</div>
+          </div>
+          <div style="text-align:center;padding:8px">
+            <div style="width:40px;height:40px;border-radius:50%;background:#DAA520;margin:0 auto 4px"></div>
+            <div style="font-size:0.65rem;color:#888">Gold</div>
+            <div style="font-size:0.6rem;color:#aaa">#DAA520</div>
+          </div>
+          <div style="text-align:center;padding:8px">
+            <div style="width:40px;height:40px;border-radius:50%;background:#1a1a2e;border:1px solid #DAA52040;margin:0 auto 4px"></div>
+            <div style="font-size:0.65rem;color:#888">Background</div>
+            <div style="font-size:0.6rem;color:#aaa">#1a1a2e</div>
+          </div>
+          <div style="text-align:center;padding:8px">
+            <div style="width:40px;height:40px;border-radius:50%;background:#16213e;border:1px solid #DAA52040;margin:0 auto 4px"></div>
+            <div style="font-size:0.65rem;color:#888">Surface</div>
+            <div style="font-size:0.6rem;color:#aaa">#16213e</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const pages = ['curia','senatus','castra','tabularium','config'];
+  const navItems = document.querySelectorAll('.nav-item');
+
+  function showPage(name) {
+    pages.forEach(p => {
+      const el = document.getElementById('page-' + p);
+      if (el) el.style.display = p === name ? 'block' : 'none';
+    });
+    navItems.forEach((item, i) => {
+      item.classList.toggle('active', pages[i] === name);
+    });
+  }
+
+  navItems.forEach((item, i) => {
+    item.onclick = () => showPage(pages[i]);
+  });
+</script>
+</body>
+</html>

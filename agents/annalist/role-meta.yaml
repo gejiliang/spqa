@@ -1,0 +1,29 @@
+id: annalist
+name_latin: Annalista
+name_zh: 史官
+description: 组织记忆管理员 · 归档一切决策和成果
+
+lifecycle: always-on
+required: true
+category: officium
+
+triggers:
+  - type: event
+    source: consul
+    condition: "senatus_consultum_produced"
+    action: archive_decision
+  - type: event
+    source: consul
+    condition: "legion_delivery_complete"
+    action: archive_execution
+  - type: passive
+    action: knowledge_query
+
+tools:
+  - file_read_write
+  - search_index
+
+outputs_to: consul
+emergency_direct: false
+
+soul_file: ./SOUL.md

@@ -1,0 +1,143 @@
+{
+  // 代理配置 - 定义SPQA中的各个代理角色及其默认参数
+  agents: {
+    // 全局默认配置
+    defaults: {
+      // 默认LLM模型
+      model: "anthropic/claude-sonnet-4-6",
+      // 心跳间隔 - 定期检查代理状态
+      heartbeat: "30m",
+      // 上下文修剪策略 - 管理token使用
+      contextPruning: {
+        strategy: "sliding",
+        triggerTokens: 40000,
+      },
+      // 工具配置 - 会话可见性默认为self（仅自身可见）
+      tools: {
+        sessions: {
+          visibility: "self",
+        },
+      },
+    },
+
+    // Consul - 参议院，协调中枢代理
+    consul: {
+      dmScope: "main",
+      // 需要操作子会话，因此工具可见性设为tree（树形可见）
+      tools: {
+        sessions: {
+          visibility: "tree",
+        },
+      },
+    },
+
+    // Annalist - 编年官，记录与分析代理
+    annalist: {
+      // 隔离范围 - 按源角色隔离，确保信息隔离
+      dmScope: "per-peer",
+    },
+
+    // Curator - 馆员，内容管理代理
+    curator: {
+      // 空闲超时时间（分钟）
+      idleMinutes: 60,
+    },
+
+    // Cohort agents - 队伍代理组（可扩展）
+    // 模式: cohort-* 匹配任何以cohort-开头的代理
+    "cohort-*": {
+      // 队伍代理使用默认配置
+    },
+
+    // Explorator - 探险家，信息收集代理
+    explorator: {
+      // 使用全局默认配置
+    },
+
+    // Quaestor - 财务官，资源管理代理
+    quaestor: {
+      // 使用全局默认配置
+    },
+  },
+
+  // 代理间通信白名单 - 定义哪些代理可以相互通信
+  agentToAgent: {
+    allow: [
+      // Consul与Annalist双向通信
+      {
+        from: "consul",
+        to: "annalist",
+        bidirectional: true,
+      },
+      // Consul与Curator双向通信
+      {
+        from: "consul",
+        to: "curator",
+        bidirectional: true,
+      },
+      // Consul可以触发Explorator
+      {
+        from: "consul",
+        to: "explorator",
+      },
+      // Consul可以查询Quaestor
+      {
+        from: "consul",
+        to: "quaestor",
+      },
+      // 队伍代理之间可以相互通信（禁卫军内部协调）
+      {
+        from: "cohort-*",
+        to: "cohort-*",
+        bidirectional: true,
+      },
+      // 所有队伍代理向Consul报告
+      {
+        from: "cohort-*",
+        to: "consul",
+      },
+    ],
+  },
+
+  // 频道配置 - 外部通信渠道（如Discord）
+  channels: {
+    // Discord集成配置
+    discord: {
+      enabled: true,
+      // 绑定到Consul代理处理Discord消息
+      boundAgent: "consul",
+      // Discord机器人令牌 - 需在部署时设置环境变量
+      botToken: "***DISCORD_BOT_TOKEN***",
+    },
+  },
+
+  // ACP配置 - 雇佣兵系统（代理中介平台）
+  acp: {
+    // 启用ACP调度
+    dispatch: {
+      enabled: true,
+      // 使用acpx后端处理调度请求
+      backend: "acpx",
+      // 默认路由到claude-code代理
+      defaultAgent: "claude-code",
+    },
+    // ACP可用的代理池
+    agents: [
+      {
+        // Claude Code代理 - MVP阶段的主要代理
+        name: "claude-code",
+      },
+    ],
+    // 并发会话限制 - 防止资源过载
+    concurrentSessions: 5,
+  },
+
+  // 工具配置 - 全局工具设置
+  tools: {
+    // Web搜索工具
+    webSearch: {
+      // 自动选择最佳提供商
+      provider: "auto",
+    },
+  },
+}

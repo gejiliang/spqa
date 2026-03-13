@@ -1,0 +1,45 @@
+# === 特勤队模板 ===
+# 复制此目录并重命名为你的特勤队 ID（如 cs-alpha）
+# 填写以下字段，通过执政官或 Dashboard 启动
+
+# === 身份 ===
+id: cs-new                      # 唯一标识，kebab-case
+code: CS-?                      # 编号（如 CS-α, CS-β, CS-γ）
+name: Cohors Specialis          # 全名
+name_custom: null               # 凯撒自定义名称（可选，如"量化狙击队"）
+description: 一句话描述这支队伍的核心任务
+
+# === 状态 ===
+status: active                  # active | paused | disbanded
+created_at: null                # 自动填充
+created_by: caesar              # caesar | consul
+
+# === 指挥模式 ===
+command_mode: hierarchical      # hierarchical(指挥官制) | flat(扁平化)
+commander: null                 # 指挥官制时填写指挥官的 member id
+
+# === 成员 ===
+# 从标准骨架中选择，或完全自定义
+# 每个成员需要一个对应的 members/{id}.md 文件
+members:
+  - id: member-1
+    role_latin: null             # 拉丁名（可选）
+    role_zh: null                # 中文名
+    description: null            # 职能描述
+    is_commander: false
+    tools: []                    # 按需授予
+    soul_file: ./members/member-1.md
+
+# === 通讯规则 ===
+comms:
+  internal: true                 # 队内横向通讯（通常 true）
+  report_to: caesar              # 对外汇报给谁
+  report_frequency: daily        # daily | weekly | on_milestone
+  archive_to: annalist           # 归档给史官
+  archive_frequency: weekly      # daily | weekly | on_milestone
+
+# === 条令（Lex Praetoriana）===
+rules:
+  - 全员持久化，项目存续期内 7×24 运行
+  - 凯撒直接指挥，不经执政官和元老院
+  - 成果定期由史官归档

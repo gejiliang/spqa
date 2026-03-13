@@ -1,0 +1,31 @@
+id: explorator
+name_latin: Explorator
+name_zh: 探路者
+description: 情报与舆情侦察兵 · 行业动态 + 用户反馈监测
+
+lifecycle: always-on
+required: false
+enabled: false
+category: officium
+
+triggers:
+  - type: cron
+    schedule: "0 8 * * *"      # 每天早8点
+    action: daily_briefing
+  - type: event
+    source: system
+    condition: "crisis_detected"
+    action: urgent_intel
+
+tools:
+  - web_search
+  - rss_reader
+  - social_media_api
+  - sentiment_analysis
+  - file_read_write
+  - notification
+
+outputs_to: consul
+emergency_direct: false
+
+soul_file: ./SOUL.md

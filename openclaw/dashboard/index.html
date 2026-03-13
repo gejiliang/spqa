@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPQA 指挥中心 - Dashboard</title>
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Custom Tailwind Theme Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'roman-dark': '#1a1a2e',
+                        'roman-surface': '#16213e',
+                        'roman-text': '#e0e0e0',
+                        'roman-red': '#8B0000',
+                        'roman-gold': '#DAA520',
+                        'roman-light': '#0f3460',
+                    },
+                    fontFamily: {
+                        sans: ['system-ui', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React and ReactDOM from CDN -->
+    <script async src="https://cdn.jsdelivr.net/npm/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://cdn.jsdelivr.net/npm/react@18.2.0/+esm",
+        "react-dom": "https://cdn.jsdelivr.net/npm/react-dom@18.2.0/+esm"
+      }
+    }
+    </script>
+
+    <!-- Babel Standalone for JSX transformation -->
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.0/babel.min.js"></script>
+
+    <style>
+        body {
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            font-family: system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body, #root {
+            height: 100%;
+            width: 100%;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #16213e;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #DAA520;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #8B0000;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .status-indicator.online {
+            background-color: #4ade80;
+        }
+
+        .status-indicator.offline {
+            background-color: #6b7280;
+        }
+
+        .roman-card {
+            background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+            border: 1px solid #DAA520;
+            border-radius: 8px;
+            padding: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .roman-card:hover {
+            border-color: #8B0000;
+            box-shadow: 0 0 15px rgba(139, 0, 0, 0.3);
+        }
+
+        .roman-btn {
+            background-color: #8B0000;
+            color: #e0e0e0;
+            border: 1px solid #DAA520;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-family: inherit;
+        }
+
+        .roman-btn:hover {
+            background-color: #6b0000;
+            box-shadow: 0 0 10px rgba(218, 165, 32, 0.3);
+        }
+
+        .roman-btn:disabled {
+            background-color: #4a4a4a;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .phase-bar {
+            display: flex;
+            height: 30px;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid #DAA520;
+        }
+
+        .phase-segment {
+            flex: 1;
+            background-color: #0f3460;
+            border-right: 1px solid #DAA520;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .phase-segment:last-child {
+            border-right: none;
+        }
+
+        .phase-segment.active {
+            background-color: #DAA520;
+            color: #1a1a2e;
+            font-weight: bold;
+        }
+
+        .task-level {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .task-level.l0 {
+            background-color: #059669;
+            color: white;
+        }
+
+        .task-level.l1 {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .task-level.l2 {
+            background-color: #f59e0b;
+            color: #1a1a2e;
+        }
+
+        .task-level.l3 {
+            background-color: #8B0000;
+            color: white;
+        }
+
+        .sidebar-nav-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .sidebar-nav-item:hover {
+            background-color: #16213e;
+            border-left-color: #DAA520;
+        }
+
+        .sidebar-nav-item.active {
+            background-color: #0f3460;
+            border-left-color: #8B0000;
+            color: #DAA520;
+            font-weight: bold;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        input, select, textarea {
+            color: #e0e0e0;
+            background-color: #0f3460;
+            border: 1px solid #DAA520;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #8B0000;
+            box-shadow: 0 0 10px rgba(218, 165, 32, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <!-- All Components and App in Single Script -->
+    <script type="text/babel">
+        const React = window.React;
+        const { useState, useEffect } = React;
+
+        // ===== API CLIENT =====
+        const API_BASE = 'http://localhost:3000/api';
+
+        // ===== PAGE COMPONENTS =====
+
+        // Curia (指挥中心)
+        function Curia() {
+          const [agents] = useState([
+            { id: 'consul', name: 'Consul', emoji: '👑', status: 'online', lastActivity: new Date(Date.now() - 5 * 60000), description: '最高决策者' },
+            { id: 'annalist', name: 'Annalist', emoji: '📚', status: 'online', lastActivity: new Date(Date.now() - 15 * 60000), description: '历史记录员' },
+            { id: 'curator', name: 'Curator', emoji: '🎯', status: 'offline', lastActivity: new Date(Date.now() - 2 * 3600000), description: '任务策展人' },
+          ]);
+          const [tasks] = useState([
+            { id: 'task-1', title: '处理用户反馈', level: 'L1', status: 'in_progress', assignedAgent: 'Consul', progress: 65 },
+            { id: 'task-2', title: '分析市场趋势', level: 'L2', status: 'pending', assignedAgent: 'Annalist', progress: 0 },
+            { id: 'task-3', title: '优化工作流', level: 'L0', status: 'completed', assignedAgent: 'Curator', progress: 100 },
+          ]);
+          const [deliberations] = useState([
+            { id: 'dlib-1', topic: '季度目标评审', phase: 'Consensus', senators: 3, status: '进行中' },
+            { id: 'dlib-2', topic: '资源分配方案', phase: 'Decretum', senators: 5, status: '已完成' },
+          ]);
+          const [costToday] = useState(1250);
+          const [costMonth] = useState(28500);
+          const [selectedTask, setSelectedTask] = useState(null);
+
+          const onlineCount = agents.filter(a => a.status === 'online').length;
+          const activeTasks = tasks.filter(t => t.status === 'in_progress').length;
+
+          return (
+            <div style={{ padding: '1.5rem', overflow: 'auto', height: '100%' }}>
+              <div style={{ marginBottom: '2rem' }}>
+                <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#DAA520', margin: '0 0 0.5rem 0' }}>
+                  👑 指挥中心 (Curia)
+                </h1>
+                <p style={{ color: '#a0a0a0', margin: 0 }}>
+                  SPQA 组织架构命令中心 · 实时监控和控制
+                </p>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '1rem',
+                marginBottom: '2rem',
+              }}>
+                <div className="roman-card" style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>👥</div>
+                  <div style={{ fontSize: '0.9rem', color: '#a0a0a0', marginBottom: '0.5rem' }}>代理人在线</div>
+                  <div style={{ fontSize: '1.5rem', color: '#DAA520', fontWeight: 'bold' }}>{onlineCount}/{agents.length}</div>
+                </div>
+                <div className="roman-card" style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⚡</div>
+                  <div style={{ fontSize: '0.9rem', color: '#a0a0a0', marginBottom: '0.5rem' }}>进行中的任务</div>
+                  <div style={{ fontSize: '1.5rem', color: '#DAA520', fontWeight: 'bold' }}>{activeTasks}/{tasks.length}</div>
+                </div>
+                <div className="roman-card" style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💰</div>
+                  <div style={{ fontSize: '0.9rem', color: '#a0a0a0', marginBottom: '0.5rem' }}>今日消耗</div>
+                  <div style={{ fontSize: '1.5rem', color: '#DAA520', fontWeight: 'bold' }}>{costToday}</div>
+                </div>
+                <div className="roman-card" style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📊</div>
+                  <div style={{ fontSize: '0.9rem', color: '#a0a0a0', marginBottom: '0.5rem' }}>本月消耗</div>
+                  <div style={{ fontSize: '1.5rem', color: '#DAA520', fontWeight: 'bold' }}>{costMonth}</div>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '2rem' }}>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginTop: 0, marginBottom: '1rem', color: '#e0e0e0' }}>快速操作</h2>
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                  <button className="roman-btn" style={{ flex: '1', minWidth: '120px' }}>📋 新议题</button>
+                  <button className="roman-btn" style={{ flex: '1', minWidth: '120px' }}>✅ 新任务</button>
+                  <button className="roman-btn" style={{ flex: '1', minWidth: '120px' }}>💼 佣兵派单</button>
+                  <button className="roman-btn" style={{ flex: '1', minWidth: '120px' }}>🔄 刷新数据</button>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '2rem' }}>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginTop: 0, marginBottom: '1rem', color: '#e0e0e0' }}>代理人状态</h2>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                  gap: '1rem',
+                }}>
+                  {agents.map(agent => (
+                    <div key={agent.id} className="roman-card">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <span style={{ fontSize: '1.5rem' }}>{agent.emoji}</span>
+                          <div>
+                            <div style={{ fontSize: '0.95rem', fontWeight: 'bold', color: '#DAA520' }}>{agent.name}</div>
+                            <div style={{ fontSize: '0.8rem', color: '#a0a0a0' }}>{agent.description}</div>
+                          </div>
+                        </div>
+                        <span className={`status-indicator ${agent.status === 'online' ? 'online' : 'offline'}`} />
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: '#a0a0a0' }}>
+                        最后活动: <span style={{ color: '#e0e0e0' }}>{agent.lastActivity.toLocaleTimeString('zh-CN')}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '2rem' }}>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginTop: 0, marginBottom: '1rem', color: '#e0e0e0' }}>活跃任务 ({activeTasks})</h2>
+                <div style={{ display: 'grid', gap: '0.75rem' }}>
+                  {tasks.filter(t => t.status === 'in_progress').map(task => (
+                    <div key={task.id} className="roman-card" onClick={() => setSelectedTask(task.id)} style={{ cursor: 'pointer' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span className={`task-level l${task.level.toLowerCase().replace('l', '')}`}>{task.level}</span>
+                          <span style={{ color: '#e0e0e0', fontWeight: '500' }}>{task.title}</span>
+                        </div>
+                        <span style={{ color: '#a0a0a0', fontSize: '0.85rem' }}>{task.assignedAgent}</span>
+                      </div>
+                      <div style={{ backgroundColor: '#0f3460', height: '6px', borderRadius: '3px', overflow: 'hidden' }}>
+                        <div style={{ backgroundColor: '#DAA520', height: '100%', width: `${task.progress}%`, transition: 'width 0.3s ease' }} />
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: '#a0a0a0', marginTop: '0.5rem', textAlign: 'right' }}>进度: {task.progress}%</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginTop: 0, marginBottom: '1rem', color: '#e0e0e0' }}>最近议题</h2>
+                <div style={{ display: 'grid', gap: '0.75rem' }}>
+                  {deliberations.map(dlib => (
+                    <div key={dlib.id} className="roman-card">
+                      <div style={{ marginBottom: '0.5rem' }}>
+                        <div style={{ fontSize: '0.95rem', fontWeight: '500', color: '#e0e0e0', marginBottom: '0.3rem' }}>{dlib.topic}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#a0a0a0' }}>阶段: <span style={{ color: '#DAA520' }}>{dlib.phase}</span></div>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#a0a0a0' }}>
+                        <span>元老: {dlib.senators}</span>
+                        <span>{dlib.status}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        // Senatus (元老院)
+        function Senatus() {
+          const PHASES = ['Cogitatio', 'Contentio', 'Consensus', 'Decretum'];
+          const [deliberations, setDeliberations] = useState([
+            { id: 'dlib-1', topic: '季度目标评审', phase: 'Consensus', phaseIndex: 2, senators: ['Consul', 'Curator', 'Scribe'], startedAt: new Date(Date.now() - 3600000), consultum: '同意推进第四季度战略目标，聚焦市场扩张与产品创新。', status: 'in_progress' },
+            { id: 'dlib-2', topic: '资源分配方案', phase: 'Decretum', phaseIndex: 3, senators: ['Consul', 'Annalist'], startedAt: new Date(Date.now() - 86400000), consultum: '决议：批准2026年资源分配方案。', status: 'completed' },
+          ]);
+          const [selectedDlib, setSelectedDlib] = useState(deliberations[0]);
+          const [newTopic, setNewTopic] = useState('');
+          const [showNewForm, setShowNewForm] = useState(false);
+
+          const availableSenators = ['Consul', 'Annalist', 'Curator', 'Scribe', 'Tribune'];
+
+          return (
+            <div style={{ padding: '1.5rem', overflow: 'auto', height: '100%' }}>
+              <div style={{ marginBottom: '2rem' }}>
+                <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#DAA520', margin: '0 0 0.5rem 0' }}>⚖️ 元老院 (Senatus)</h1>
+                <p style={{ color: '#a0a0a0', margin: 0 }}>组织议题讨论与决议管理</p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', height: '100%' }}>
+                <div>
+                  <div style={{ marginBottom: '1rem' }}>
+                    <button className="roman-btn" onClick={() => setShowNewForm(!showNewForm)} style={{ width: '100%' }}>
+                      {showNewForm ? '✕ 取消' : '➕ 新议题'}
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'grid', gap: '0.75rem' }}>
+                    {deliberations.map(dlib => (
+                      <div
+                        key={dlib.id}
+                        className="roman-card"
+                        onClick={() => setSelectedDlib(dlib)}
+                        style={{
+                          cursor: 'pointer',
+                          backgroundColor: selectedDlib?.id === dlib.id ? '#0f3460' : '',
+                          borderColor: selectedDlib?.id === dlib.id ? '#8B0000' : '',
+                        }}
+                      >
+                        <div style={{ marginBottom: '0.5rem' }}>
+                          <div style={{ fontSize: '0.95rem', fontWeight: '500', color: '#DAA520', marginBottom: '0.3rem' }}>{dlib.topic}</div>
+                          <div style={{ fontSize: '0.8rem', color: '#a0a0a0' }}>
+                            {new Date(dlib.startedAt).toLocaleString('zh-CN')}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#a0a0a0' }}>
+                          阶段: <span style={{ color: '#e0e0e0' }}>{dlib.phase}</span> | 元老: {dlib.senators.length}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {selectedDlib && (
+                  <div>
+                    <div className="roman-card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid #DAA520' }}>
+                        <h2 style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#DAA520', margin: 0, marginBottom: '0.5rem' }}>
+                          {selectedDlib.topic}
+                        </h2>
+                        <div style={{ fontSize: '0.85rem', color: '#a0a0a0' }}>
+                          {new Date(selectedDlib.startedAt).toLocaleString('zh-CN')}
+                        </div>
+                      </div>
+
+                      <div style={{ marginBottom: '1.5rem' }}>
+                        <div style={{ fontSize: '0.85rem', color: '#a0a0a0', marginBottom: '0.75rem' }}>阶段进度</div>
+                        <div className="phase-bar">
+                          {PHASES.map((phase, idx) => (
+                            <div
+                              key={phase}
+                              className={`phase-segment ${idx <= selectedDlib.phaseIndex ? 'active' : ''}`}
+                            >
+                              {phase}
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#DAA520', marginTop: '0.5rem' }}>
+                          当前: {selectedDlib.phase}
+                        </div>
+                      </div>
+
+                      <div style={{ marginBottom: '1.5rem' }}>
+                        <div style={{ fontSize: '0.85rem', color: '#a0a0a0', marginBottom: '0.75rem' }}>参与元老</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          {selectedDlib.senators.map(senator => (
+                            <span
+                              key={senator}
+                              style={{
+                                backgroundColor: '#0f3460',
+                                color: '#DAA520',
+                                padding: '0.4rem 0.8rem',
+                                borderRadius: '4px',
+                                fontSize: '0.8rem',
+                              }}
+                            >
+                              {senator}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div style={{ flex: 1, marginBottom: '1rem' }}>
+                        <div style={{ fontSize: '0.85rem', color: '#a0a0a0', marginBottom: '0.75rem' }}>Senatus Consultum</div>
+                        {selectedDlib.consultum ? (
+                          <div style={{
+                            backgroundColor: '#0f3460',
+                            padding: '1rem',
+                            borderRadius: '4px',
+                            border: '1px solid #DAA520',
+                            color: '#e0e0e0',
+                            fontSize: '0.9rem',
+                            lineHeight: '1.5',
+                            minHeight: '100px',
+                          }}>
+                            {selectedDlib.consultum}
+                          </div>
+                        ) : (
+                          <div style={{
+                            backgroundColor: '#0f3460',
+                            padding: '1rem',
+                            borderRadius: '4px',
+                            border: '1px dashed #DAA520',
+                            color: '#a0a0a0',
+                            fontSize: '0.9rem',
+                            minHeight: '100px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}>
+                            等待元老院决议...
+                          </div>
+                        )}
+                      </div>
+
+                      {selectedDlib.status === 'in_progress' && (
+                        <div style={{ display: 'flex', gap: '0.75rem' }}>
+                          <button className="roman-btn" style={{ flex: 1 }}>→ 下一阶段</button>
+                          <button className="roman-btn" style={{ flex: 1, backgroundColor: '#4a4a4a' }}>⊗ 终止议题</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        // Castra (军营)
+        function Castra() {
+          const [tasks] = useState([
+            { id: 'task-1', title: '处理用户反馈汇总', level: 'L1', status: 'in_progress', assignedAgent: 'Consul', cost: 150, createdAt: new Date(Date.now() - 7200000), dueAt: new Date(Date.now() + 86400000), type: 'legion' },
+            { id: 'task-2', title: '第二季度市场分析', level: 'L2', status: 'pending', assignedAgent: 'Annalist', cost: 450, createdAt: new Date(Date.now() - 3600000), dueAt: new Date(Date.now() + 172800000), type: 'legion' },
+            { id: 'merc-1', title: '数据清洗', level: 'L2', status: 'pending', assignedAgent: '外包商-Alpha', cost: 300, createdAt: new Date(Date.now() - 1800000), dueAt: new Date(Date.now() + 259200000), type: 'mercenary' },
+          ]);
+          const [selectedTask, setSelectedTask] = useState(null);
+          const [filterType, setFilterType] = useState('all');
+          const [filterStatus, setFilterStatus] = useState('all');
+
+          const filteredTasks = tasks.filter(task => {
+            const typeMatch = filterType === 'all' || task.type === filterType;
+            const statusMatch = filterStatus === 'all' || task.status === filterStatus;
+            return typeMatch && statusMatch;
+          });
+
+          const totalCost = filteredTasks.reduce((sum, t) => sum + t.cost, 0);
+
+          return (
+            <div style={{ padding: '1.5rem', overflow: 'auto', height: '100%' }}>
+              <div style={{ marginBottom: '2rem' }}>
+                <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#DAA520', margin: '0 0 0.5rem 0' }}>⚔️ 军营 (Castra)</h1>
+                <p style={{ color: '#a0a0a0', margin: 0 }}>任务管理与人力资源分配</p>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: '1rem',
+                marginBottom: '2rem',
+              }}>
+                <div className="roman-card" style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.5rem', marginBottom: '0.3rem' }}>🔢</div>
+                  <div style={{ fontSize: '0.85rem', color: '#a0a0a0', marginBottom: '0.3rem' }}>总任务数</div>
+                  <div style={{ fontSize: '1.3rem', color: '#DAA520', fontWeight: 'bold' }}>{filteredTasks.length}</div>
+                </div>
+                <div className="roman-card" style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.5rem', marginBottom: '0.3rem' }}>💼</div>
+                  <div style={{ fontSize: '0.85rem', color: '#a0a0a0', marginBottom: '0.3rem' }}>佣兵任务</div>
+                  <div style={{ fontSize: '1.3rem', color: '#DAA520', fontWeight: 'bold' }}>{filteredTasks.filter(t => t.type === 'mercenary').length}</div>
+                </div>
+                <div className="roman-card" style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.5rem', marginBottom: '0.3rem' }}>💰</div>
+                  <div style={{ fontSize: '0.85rem', color: '#a0a0a0', marginBottom: '0.3rem' }}>成本合计</div>
+                  <div style={{ fontSize: '1.3rem', color: '#DAA520', fontWeight: 'bold' }}>{totalCost}</div>
+                </div>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: '1rem',
+                marginBottom: '2rem',
+              }}>
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  style={{
+                    padding: '0.5rem',
+                    backgroundColor: '#0f3460',
+                    border: '1px solid #DAA520',
+                    borderRadius: '4px',
+                    color: '#e0e0e0',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="all">所有类型</option>
+                  <option value="legion">军团任务</option>
+                  <option value="mercenary">佣兵任务</option>
+                </select>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  style={{
+                    padding: '0.5rem',
+                    backgroundColor: '#0f3460',
+                    border: '1px solid #DAA520',
+                    borderRadius: '4px',
+                    color: '#e0e0e0',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value="all">所有状态</option>
+                  <option value="pending">待处理</option>
+                  <option value="in_progress">进行中</option>
+                  <option value="completed">已完成</option>
+                </select>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                gap: '1rem',
+              }}>
+                {filteredTasks.map(task => (
+                  <div
+                    key={task.id}
+                    className="roman-card"
+                    onClick={() => setSelectedTask(task)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <span className={`task-level l${task.level.toLowerCase().replace('l', '')}`}>{task.level}</span>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '0.2rem 0.6rem',
+                          backgroundColor: task.type === 'mercenary' ? '#8B0000' : '#0f3460',
+                          color: '#e0e0e0',
+                          borderRadius: '4px',
+                          fontSize: '0.7rem',
+                        }}>
+                          {task.type === 'mercenary' ? '佣兵' : '军团'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: '500', color: '#e0e0e0', marginBottom: '0.5rem' }}>
+                        {task.title}
+                      </div>
+                    </div>
+                    <div style={{
+                      display: 'inline-block',
+                      padding: '0.25rem 0.5rem',
+                      backgroundColor: task.status === 'completed' ? '#059669' : task.status === 'in_progress' ? '#3b82f6' : '#f59e0b',
+                      color: 'white',
+                      borderRadius: '4px',
+                      fontSize: '0.7rem',
+                      marginBottom: '0.75rem',
+                    }}>
+                      {task.status === 'completed' ? '已完成' : task.status === 'in_progress' ? '进行中' : '待处理'}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#a0a0a0', marginBottom: '0.75rem', lineHeight: '1.5' }}>
+                      <div>分配: <span style={{ color: '#DAA520' }}>{task.assignedAgent}</span></div>
+                      <div>成本: <span style={{ color: '#DAA520' }}>{task.cost} 积分</span></div>
+                    </div>
+                    <button className="roman-btn" style={{ width: '100%', fontSize: '0.8rem' }}>查看详情</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        }
+
+        // Tabularium (档案馆)
+        function Tabularium() {
+          const [archive] = useState([
+            { id: 'archive-1', type: 'decision', title: 'Senatus Consultum: Q1 2026战略', date: new Date('2026-03-01'), summary: '决议批准第一季度战略方向。', creator: 'Consul' },
+            { id: 'archive-2', type: 'task_completion', title: '任务完成报告: 用户体验优化', date: new Date('2026-02-28'), summary: '完成用户界面重设计，提升易用性30%。', creator: 'Annalist' },
+            { id: 'archive-3', type: 'deliberation', title: '元老院议题: 组织扩展方案', date: new Date('2026-02-25'), summary: '讨论组织规模扩展的可行性。', creator: 'Tribune' },
+          ]);
+          const [searchQuery, setSearchQuery] = useState('');
+          const [filterType, setFilterType] = useState('all');
+          const [selectedEntry, setSelectedEntry] = useState(null);
+
+          const getTypeIcon = (type) => {
+            const icons = { 'decision': '⚖️', 'task_completion': '✅', 'deliberation': '💬', 'policy': '📜' };
+            return icons[type] || '📄';
+          };
+
+          const filteredArchive = archive.filter(entry => {
+            const typeMatch = filterType === 'all' || entry.type === filterType;
+            const queryMatch = searchQuery === '' ||
+              entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              entry.summary.toLowerCase().includes(searchQuery.toLowerCase());
+            return typeMatch && queryMatch;
+          });
+
+          return (
+            <div style={{ padding: '1.5rem', overflow: 'auto', height: '100%' }}>
+              <div style={{ marginBottom: '2rem' }}>
+                <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#DAA520', margin: '0 0 0.5rem 0' }}>📚 档案馆 (Tabularium)</h1>
+                <p style={{ color: '#a0a0a0', margin: 0 }}>历史决议与记录查询</p>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gap: '1rem',
+                marginBottom: '2rem',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              }}>
+                <input
+                  type="text"
+                  placeholder="搜索决议、任务、议题..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    backgroundColor: '#0f3460',
+                    border: '1px solid #DAA520',
+                    borderRadius: '4px',
+                    color: '#e0e0e0',
+                    boxSizing: 'border-box',
+                    fontFamily: 'inherit',
+                  }}
+                />
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    backgroundColor: '#0f3460',
+                    border: '1px solid #DAA520',
+                    borderRadius: '4px',
+                    color: '#e0e0e0',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  <option value="all">所有类型</option>
+                  <option value="decision">决议</option>
+                  <option value="task_completion">完成报告</option>
+                  <option value="deliberation">议题</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                {filteredArchive.length > 0 ? (
+                  filteredArchive.map(entry => (
+                    <div
+                      key={entry.id}
+                      className="roman-card"
+                      onClick={() => setSelectedEntry(entry)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <div style={{ marginBottom: '0.75rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                          <span style={{ fontSize: '1.5rem' }}>{getTypeIcon(entry.type)}</span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '0.95rem', fontWeight: '500', color: '#DAA520' }}>{entry.title}</div>
+                            <div style={{ fontSize: '0.8rem', color: '#a0a0a0' }}>
+                              {entry.date.toLocaleDateString('zh-CN')} · {entry.creator}
+                            </div>
+                          </div>
+                        </div>
+                        <p style={{ color: '#a0a0a0', margin: '0.5rem 0 0 0', fontSize: '0.85rem', lineHeight: '1.4' }}>
+                          {entry.summary}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ padding: '2rem', textAlign: 'center', color: '#a0a0a0' }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔍</div>
+                    <div style={{ fontSize: '1rem' }}>未找到匹配的记录</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        // Configuratio (配置)
+        function Configuratio() {
+          const [activeTab, setActiveTab] = useState('spqa');
+          const [showSaveMessage, setShowSaveMessage] = useState(false);
+
+          const handleSaveConfig = () => {
+            setShowSaveMessage(true);
+            setTimeout(() => setShowSaveMessage(false), 2000);
+          };
+
+          return (
+            <div style={{ padding: '1.5rem', overflow: 'auto', height: '100%' }}>
+              <div style={{ marginBottom: '2rem' }}>
+                <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#DAA520', margin: '0 0 0.5rem 0' }}>⚙️ 配置 (Configuratio)</h1>
+                <p style={{ color: '#a0a0a0', margin: 0 }}>系统设置与配置管理</p>
+              </div>
+
+              {showSaveMessage && (
+                <div style={{
+                  padding: '0.75rem 1rem',
+                  backgroundColor: '#059669',
+                  color: 'white',
+                  borderRadius: '4px',
+                  marginBottom: '1rem',
+                  fontSize: '0.9rem',
+                }}>
+                  ✓ 配置已保存
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid #DAA520' }}>
+                <button
+                  onClick={() => setActiveTab('spqa')}
+                  style={{
+                    padding: '0.75rem 1.25rem',
+                    backgroundColor: activeTab === 'spqa' ? '#8B0000' : 'transparent',
+                    color: activeTab === 'spqa' ? '#DAA520' : '#a0a0a0',
+                    border: activeTab === 'spqa' ? '1px solid #DAA520' : 'none',
+                    borderRadius: '4px 4px 0 0',
+                    cursor: 'pointer',
+                    fontWeight: activeTab === 'spqa' ? 'bold' : 'normal',
+                    fontSize: '0.9rem',
+                  }}
+                >
+                  🏛️ SPQA 配置
+                </button>
+                <button
+                  onClick={() => setActiveTab('theme')}
+                  style={{
+                    padding: '0.75rem 1.25rem',
+                    backgroundColor: activeTab === 'theme' ? '#8B0000' : 'transparent',
+                    color: activeTab === 'theme' ? '#DAA520' : '#a0a0a0',
+                    border: activeTab === 'theme' ? '1px solid #DAA520' : 'none',
+                    borderRadius: '4px 4px 0 0',
+                    cursor: 'pointer',
+                    fontWeight: activeTab === 'theme' ? 'bold' : 'normal',
+                    fontSize: '0.9rem',
+                  }}
+                >
+                  🎨 主题预览
+                </button>
+              </div>
+
+              {activeTab === 'spqa' && (
+                <div>
+                  <div className="roman-card" style={{ marginBottom: '1.5rem' }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#DAA520', margin: '0 0 1rem 0' }}>📋 基本设置</h3>
+                    <div style={{ marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontSize: '0.85rem', color: '#a0a0a0' }}>组织名称</div>
+                      <code style={{ backgroundColor: '#0f3460', padding: '0.3rem 0.6rem', borderRadius: '4px', color: '#DAA520', fontSize: '0.8rem' }}>
+                        SPQA 决策系统
+                      </code>
+                    </div>
+                    <div style={{ marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontSize: '0.85rem', color: '#a0a0a0' }}>主题</div>
+                      <code style={{ backgroundColor: '#0f3460', padding: '0.3rem 0.6rem', borderRadius: '4px', color: '#DAA520', fontSize: '0.8rem' }}>
+                        roman_dark
+                      </code>
+                    </div>
+                    <div style={{ marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontSize: '0.85rem', color: '#a0a0a0' }}>语言</div>
+                      <code style={{ backgroundColor: '#0f3460', padding: '0.3rem 0.6rem', borderRadius: '4px', color: '#DAA520', fontSize: '0.8rem' }}>
+                        zh-CN
+                      </code>
+                    </div>
+                  </div>
+
+                  <button className="roman-btn" onClick={handleSaveConfig} style={{ width: '100%' }}>
+                    💾 保存配置
+                  </button>
+                </div>
+              )}
+
+              {activeTab === 'theme' && (
+                <div>
+                  <div className="roman-card" style={{ marginBottom: '1.5rem' }}>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#DAA520', margin: '0 0 1rem 0' }}>🎨 当前主题: Roman Dark</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
+                      <div style={{ backgroundColor: '#1a1a2e', padding: '1rem', borderRadius: '4px', border: '1px solid #DAA520' }}>
+                        <div style={{ fontSize: '0.8rem', color: '#a0a0a0', marginBottom: '0.5rem' }}>背景主色</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#e0e0e0' }}>#1a1a2e</div>
+                      </div>
+                      <div style={{ backgroundColor: '#16213e', padding: '1rem', borderRadius: '4px', border: '1px solid #DAA520' }}>
+                        <div style={{ fontSize: '0.8rem', color: '#a0a0a0', marginBottom: '0.5rem' }}>表面色</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#e0e0e0' }}>#16213e</div>
+                      </div>
+                      <div style={{ backgroundColor: '#8B0000', padding: '1rem', borderRadius: '4px', border: '1px solid #DAA520' }}>
+                        <div style={{ fontSize: '0.8rem', color: '#a0a0a0', marginBottom: '0.5rem' }}>强调红色</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#e0e0e0' }}>#8B0000</div>
+                      </div>
+                      <div style={{ backgroundColor: '#0f3460', padding: '1rem', borderRadius: '4px', border: '2px solid #DAA520' }}>
+                        <div style={{ fontSize: '0.8rem', color: '#a0a0a0', marginBottom: '0.5rem' }}>强调金色</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#DAA520' }}>#DAA520</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="roman-card">
+                    <h3 style={{ fontSize: '1rem', fontWeight: 'bold', color: '#DAA520', margin: '0 0 1rem 0' }}>🔘 组件预览</h3>
+                    <button className="roman-btn" style={{ width: '100%', marginBottom: '0.5rem' }}>标准按钮</button>
+                    <button className="roman-btn" disabled style={{ width: '100%' }}>禁用按钮</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        // Main App Component
+        function App() {
+          const [currentPage, setCurrentPage] = useState('Curia');
+          const [isConnected, setIsConnected] = useState(true);
+          const [time, setTime] = React.useState(new Date());
+
+          useEffect(() => {
+            const timer = setInterval(() => setTime(new Date()), 1000);
+            return () => clearInterval(timer);
+          }, []);
+
+          const pages = [
+            { id: 'Curia', name: '指挥中心', emoji: '👑', latin: 'Curia', description: '命令与控制' },
+            { id: 'Senatus', name: '元老院', emoji: '⚖️', latin: 'Senatus', description: '议题与决议' },
+            { id: 'Castra', name: '军营', emoji: '⚔️', latin: 'Castra', description: '任务管理' },
+            { id: 'Tabularium', name: '档案馆', emoji: '📚', latin: 'Tabularium', description: '历史记录' },
+            { id: 'Configuratio', name: '配置', emoji: '⚙️', latin: 'Configuratio', description: '系统设置' },
+          ];
+
+          const renderPage = () => {
+            switch (currentPage) {
+              case 'Curia':
+                return React.createElement(Curia);
+              case 'Senatus':
+                return React.createElement(Senatus);
+              case 'Castra':
+                return React.createElement(Castra);
+              case 'Tabularium':
+                return React.createElement(Tabularium);
+              case 'Configuratio':
+                return React.createElement(Configuratio);
+              default:
+                return React.createElement(Curia);
+            }
+          };
+
+          return React.createElement('div', {
+            style: {
+              display: 'grid',
+              gridTemplateColumns: '250px 1fr',
+              gridTemplateRows: '60px 1fr',
+              height: '100vh',
+              width: '100vw',
+              backgroundColor: '#1a1a2e',
+              color: '#e0e0e0',
+              fontFamily: 'system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif',
+              overflow: 'hidden',
+            },
+          },
+            // Top Status Bar
+            React.createElement('div', {
+              style: {
+                gridColumn: '1 / -1',
+                gridRow: 1,
+                backgroundColor: '#0f3460',
+                borderBottom: '1px solid #DAA520',
+                padding: '0 1.5rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              },
+            },
+              React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '0.75rem' } },
+                React.createElement('div', { style: { fontSize: '1.5rem' } }, '🏛️'),
+                React.createElement('div', null,
+                  React.createElement('div', { style: { fontSize: '0.9rem', fontWeight: 'bold', color: '#DAA520' } }, 'SPQA 指挥中心'),
+                  React.createElement('div', { style: { fontSize: '0.7rem', color: '#a0a0a0' } }, 'AI-Native Organizational Architecture')
+                )
+              ),
+              React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '1.5rem' } },
+                React.createElement('div', { style: { fontSize: '0.85rem' } },
+                  React.createElement('div', { style: { color: '#a0a0a0', marginBottom: '0.2rem' } }, 'API 状态'),
+                  React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '0.5rem' } },
+                    React.createElement('span', { className: `status-indicator ${isConnected ? 'online' : 'offline'}` }),
+                    React.createElement('span', { style: { fontSize: '0.8rem', color: isConnected ? '#4ade80' : '#ef4444' } }, isConnected ? '已连接' : '离线')
+                  )
+                ),
+                React.createElement('div', { style: { fontSize: '0.85rem', borderLeft: '1px solid #DAA520', paddingLeft: '1.5rem' } },
+                  React.createElement('div', { style: { color: '#a0a0a0', marginBottom: '0.2rem' } }, '当前时间'),
+                  React.createElement('div', { style: { fontSize: '0.9rem', color: '#DAA520', fontWeight: '500' } }, time.toLocaleTimeString('zh-CN'))
+                )
+              )
+            ),
+
+            // Sidebar Navigation
+            React.createElement('div', {
+              style: {
+                gridColumn: 1,
+                gridRow: 2,
+                backgroundColor: '#16213e',
+                borderRight: '1px solid #DAA520',
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+              },
+            },
+              React.createElement('div', { style: { padding: '1.5rem 1rem', borderBottom: '1px solid #DAA520' } },
+                React.createElement('div', { style: { fontSize: '0.75rem', color: '#a0a0a0', textTransform: 'uppercase', letterSpacing: '0.1em' } }, '导航菜单')
+              ),
+              React.createElement('div', { style: { flex: 1, display: 'flex', flexDirection: 'column', padding: '0.75rem' } },
+                pages.map(page =>
+                  React.createElement('div', {
+                    key: page.id,
+                    onClick: () => setCurrentPage(page.id),
+                    className: 'sidebar-nav-item',
+                    style: {
+                      backgroundColor: currentPage === page.id ? '#0f3460' : 'transparent',
+                      borderLeftColor: currentPage === page.id ? '#8B0000' : 'transparent',
+                      color: currentPage === page.id ? '#DAA520' : '#a0a0a0',
+                    },
+                  },
+                    React.createElement('span', { style: { fontSize: '1.2rem' } }, page.emoji),
+                    React.createElement('div', { style: { flex: 1 } },
+                      React.createElement('div', { style: { fontSize: '0.9rem', fontWeight: currentPage === page.id ? 'bold' : 'normal' } }, page.name),
+                      React.createElement('div', { style: { fontSize: '0.65rem', color: '#6b7280', marginTop: '0.1rem' } }, page.latin)
+                    )
+                  )
+                )
+              ),
+              React.createElement('div', { style: { padding: '1rem', borderTop: '1px solid #DAA520', fontSize: '0.75rem', color: '#a0a0a0', textAlign: 'center' } },
+                React.createElement('div', null, 'SPQA v0.1.0 MVP'),
+                React.createElement('div', { style: { marginTop: '0.5rem', fontSize: '0.7rem' } }, 'Powered by OpenClaw')
+              )
+            ),
+
+            // Main Content Area
+            React.createElement('div', {
+              style: {
+                gridColumn: 2,
+                gridRow: 2,
+                backgroundColor: '#1a1a2e',
+                overflow: 'auto',
+              },
+            },
+              React.createElement('div', { style: { height: '100%', width: '100%' } }, renderPage())
+            )
+          );
+        }
+
+        // Render App
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+    </script>
+</body>
+</html>

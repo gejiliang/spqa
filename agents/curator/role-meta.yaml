@@ -1,0 +1,31 @@
+id: curator-aquarum
+name_latin: Curator Aquarum
+name_zh: 水道官
+description: IT 基础设施运维 + API 成本监控
+
+lifecycle: always-on
+required: true
+category: officium
+
+triggers:
+  - type: cron
+    schedule: "0 */6 * * *"    # 每6小时巡检
+    action: health_check
+  - type: cron
+    schedule: "0 9 * * 1"      # 每周一早9点
+    action: weekly_report
+  - type: event
+    source: system
+    condition: "service_down OR api_error_rate > 5%"
+    action: emergency_alert
+
+tools:
+  - system_monitor
+  - api_usage_tracker
+  - notification
+  - file_read_write
+
+outputs_to: consul
+emergency_direct: true         # 宕机直接通知凯撒
+
+soul_file: ./SOUL.md

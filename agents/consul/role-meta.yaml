@@ -1,0 +1,32 @@
+id: consul
+name_latin: Consul
+name_zh: 执政官
+description: 凯撒首席助理 · 系统入口 · 编排中枢
+
+lifecycle: always-on
+required: true
+category: officium
+
+triggers:
+  - type: event
+    source: caesar
+    condition: "any_message"
+    action: process_input
+  - type: event
+    source: system
+    condition: "agent_report"
+    action: filter_and_relay
+
+tools:
+  - file_read_write
+  - agent_instantiate
+  - agent_destroy
+  - message_route
+  - notification
+  - calendar_api
+  - progress_tracker
+
+outputs_to: caesar
+emergency_direct: true
+
+soul_file: ./SOUL.md

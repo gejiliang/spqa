@@ -1,0 +1,31 @@
+id: quaestor
+name_latin: Quaestor
+name_zh: 财务官
+description: 凯撒现实世界的财务管家 · 记账、预算、财务分析
+
+lifecycle: always-on
+required: false
+enabled: false
+category: officium
+
+triggers:
+  - type: cron
+    schedule: "0 21 * * *"     # 每天晚9点
+    action: daily_expense_log
+  - type: cron
+    schedule: "0 9 1 * *"      # 每月1号早9点
+    action: monthly_report
+  - type: event
+    source: caesar
+    condition: "expense_input"
+    action: record_expense
+
+tools:
+  - file_read_write
+  - spreadsheet
+  - notification
+
+outputs_to: consul
+emergency_direct: false
+
+soul_file: ./SOUL.md

@@ -1,0 +1,39 @@
+# === 自定义角色模板 ===
+# 复制此目录并重命名为你的角色 ID（kebab-case）
+# 填写以下字段，执政官会自动检测并注册
+
+id: my-custom-role              # 唯一标识，和目录名一致
+name_latin: Nomen Latinum       # 拉丁名（可选，保持 SPQA 风格）
+name_zh: 中文名                  # 中文名
+description: 一句话说清楚这个角色干什么
+
+lifecycle: always-on            # always-on | project-persistent | ephemeral
+required: false                 # 自定义角色始终为 false
+enabled: false                  # 改为 true 启用
+category: custom
+
+triggers:
+  - type: cron                  # cron(定时) | event(事件) | passive(被调用)
+    schedule: "0 9 * * *"       # cron 表达式（此例：每天早 9 点）
+    action: daily_task          # 触发的行为名称
+  # - type: event
+  #   source: system            # system | consul | caesar
+  #   condition: "some_condition"
+  #   action: alert_action
+
+tools:                          # 按需选择，最小权限原则
+  - file_read_write
+  # - web_search
+  # - spreadsheet
+  # - notification
+  # - api_call
+  # - ssh
+  # - social_media_api
+  # - sentiment_analysis
+  # - rss_reader
+  # - system_monitor
+
+outputs_to: consul              # 常规输出汇报给执政官
+emergency_direct: false         # 需要凯撒手动授权才能改为 true
+
+soul_file: ./SOUL.md
